@@ -30,20 +30,24 @@ function listSkills() {
     .sort()
     .map((file) => {
       const body = fs.readFileSync(path.join(REPO_ROOT, file), 'utf8');
-      return { name: path.basename(file, '.md'), file, description: parseDescription(body) };
+      const name = path.basename(file, '.md');
+      // A skill may bind itself to a shorter slash command than its filename.
+      const command = parseField(body, 'command') || name;
+      return { name, command, file, description: parseField(body, 'description') };
     });
 }
 
-// Pull `description:` out of the YAML frontmatter without taking a YAML dependency.
+// Pull a scalar out of the YAML frontmatter without taking a YAML dependency.
 // Handles plain, quoted, and multi-line-folded values.
-function parseDescription(body) {
+function parseField(body, field) {
   const fm = body.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   if (!fm) return '';
   const lines = fm[1].split(/\r?\n/);
-  const start = lines.findIndex((l) => /^description\s*:/.test(l));
+  const key = new RegExp(`^${field}\\s*:`);
+  const start = lines.findIndex((l) => key.test(l));
   if (start === -1) return '';
 
-  let value = lines[start].replace(/^description\s*:\s*/, '');
+  let value = lines[start].replace(key, '').replace(/^\s*/, '');
   // Continuation lines are indented and not a new `key:` entry.
   for (let i = start + 1; i < lines.length; i++) {
     if (/^\s+\S/.test(lines[i]) && !/^\s*[\w-]+\s*:/.test(lines[i])) {
@@ -53,6 +57,11 @@ function parseDescription(body) {
     }
   }
   return value.trim().replace(/^["']|["']$/g, '');
+}
+
+// What the command is called once installed, and how it's shown in listings.
+function label(skill) {
+  return skill.command === skill.name ? green(skill.name) : `${green(skill.command)} ${dim(`(${skill.name})`)}`;
 }
 
 function truncate(s, n) {
@@ -93,7 +102,7 @@ ${bold('Options')}
   -l, --list             list available commands and exit
 
 ${bold('Available')}
-${skills.map((s) => `  ${green(s.name)}\n      ${dim(truncate(s.description, 96))}`).join('\n')}
+${skills.map((s) => `  ${label(s)}\n      ${dim(truncate(s.description, 96))}`).join('\n')}
 `);
 }
 
@@ -113,7 +122,7 @@ function main() {
 
   if (opts.help) return usage(skills);
   if (opts.list) {
-    console.log('\n' + skills.map((s) => `  ${green(s.name)}\n      ${dim(truncate(s.description, 96))}`).join('\n') + '\n');
+    console.log('\n' + skills.map((s) => `  ${label(s)}\n      ${dim(truncate(s.description, 96))}`).join('\n') + '\n');
     return;
   }
 
@@ -121,10 +130,12 @@ function main() {
   if (opts.names.length) {
     selected = [];
     for (const name of opts.names) {
-      const match = skills.find((s) => s.name === name);
+      // Accept either the filename or the slash command it installs as.
+      const match = skills.find((s) => s.name === name || s.command === name);
       if (!match) {
         console.error(red(`\nNo command named "${name}".`));
-        console.error(dim(`Available: ${skills.map((s) => s.name).join(', ')}\n`));
+        const available = skills.map((s) => (s.command === s.name ? s.name : `${s.command} / ${s.name}`));
+        console.error(dim(`Available: ${available.join(', ')}\n`));
         process.exit(1);
       }
       selected.push(match);
@@ -138,14 +149,15 @@ function main() {
   let skipped = 0;
 
   for (const skill of selected) {
-    const to = path.join(dest, skill.file);
+    // The installed filename is what becomes the slash command, so honour `command:`.
+    const to = path.join(dest, `${skill.command}.md`);
     if (fs.existsSync(to) && !opts.force) {
-      console.log(`  ${yellow('skip')}  ${skill.name} ${dim('(already exists — use --force to overwrite)')}`);
+      console.log(`  ${yellow('skip')}  ${skill.command} ${dim('(already exists — use --force to overwrite)')}`);
       skipped++;
       continue;
     }
     fs.copyFileSync(path.join(REPO_ROOT, skill.file), to);
-    console.log(`  ${green('added')} ${skill.name}`);
+    console.log(`  ${green('added')} ${label(skill)}`);
     written++;
   }
 
@@ -155,7 +167,7 @@ function main() {
   console.log(`\n${written} installed, ${skipped} skipped → ${bold(where)}`);
 
   if (written && opts.target === 'claude') {
-    console.log(dim(`\nRestart Claude Code, then run /${selected[0].name}\n`));
+    console.log(dim(`\nRestart Claude Code, then run /${selected[0].command}\n`));
   }
 }
 
