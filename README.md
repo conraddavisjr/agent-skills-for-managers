@@ -7,7 +7,7 @@ Each command is a single markdown file: YAML frontmatter declaring what it does 
 ## Install
 
 ```bash
-npx github:conraddavisjr/skills
+npx github:conraddavisjr/agent-skills
 ```
 
 That installs every command into `.claude/commands/` in the current project. No npm account, no global install, nothing to keep up to date — it pulls straight from this repo.
@@ -15,13 +15,13 @@ That installs every command into `.claude/commands/` in the current project. No 
 Install just one:
 
 ```bash
-npx github:conraddavisjr/skills feedback-os-add-team-member
+npx github:conraddavisjr/agent-skills feedback-os-add-team-member
 ```
 
 See what's available first:
 
 ```bash
-npx github:conraddavisjr/skills --list
+npx github:conraddavisjr/agent-skills --list
 ```
 
 ### Options

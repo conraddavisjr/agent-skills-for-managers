@@ -81,9 +81,9 @@ function usage(skills) {
   console.log(`
 ${bold('Conrad Davis Jr. — AI agent commands')}
 
-  ${bold('npx github:conraddavisjr/skills')}                 install everything
-  ${bold('npx github:conraddavisjr/skills <name>')}          install one command
-  ${bold('npx github:conraddavisjr/skills --list')}          show what's available
+  ${bold('npx github:conraddavisjr/agent-skills')}                 install everything
+  ${bold('npx github:conraddavisjr/agent-skills <name>')}          install one command
+  ${bold('npx github:conraddavisjr/agent-skills --list')}          show what's available
 
 ${bold('Options')}
   -t, --target <agent>   claude (default), cursor, windsurf, generic
