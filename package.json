@@ -1,0 +1,31 @@
+{
+  "name": "@conraddavisjr/skills",
+  "version": "0.1.0",
+  "description": "Reusable AI agent commands by Conrad Davis Jr. Install into any project with npx.",
+  "bin": {
+    "skills": "bin/install.js"
+  },
+  "files": [
+    "bin",
+    "*.md"
+  ],
+  "keywords": [
+    "claude",
+    "claude-code",
+    "ai",
+    "agent",
+    "skills",
+    "commands",
+    "notion"
+  ],
+  "author": "Conrad Davis Jr.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/conraddavisjr/skills.git"
+  },
+  "homepage": "https://github.com/conraddavisjr/skills#readme",
+  "engines": {
+    "node": ">=16"
+  }
+}
