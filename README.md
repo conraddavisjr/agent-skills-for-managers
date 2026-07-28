@@ -4,7 +4,7 @@ Capture what you notice about your team, route
 PR reviews to the people with room to do them, and keep the record straight, from wherever
 you already work.
 
-![Two loops a manager runs: observe, 1:1, growth — and PR opened, reviewed, merged](./assets/hero.svg)
+![The feedback loop a manager runs: observe, then a 1:1, then growth, circling back to observe](./assets/hero.svg)
 
 Every command lives in its own folder under `commands/`: a `command.md` with YAML
 frontmatter declaring what it does and which tools it may touch, then step-by-step
@@ -19,7 +19,7 @@ instructions.
 | Onboarding a new report | `/add` | Build the record before you need it, not the week reviews are due |
 | Getting a sprint's PRs reviewed | `/pr-assignments-slack` | Route by who has capacity, not by who's loudest |
 
-## Two loops
+## The loop
 
 Engineering has had its loop for decades. Work opens, gets reviewed, ships, and the cycle
 starts again — and every stage leaves an artifact you can go back and read.
@@ -31,6 +31,10 @@ when it gets reconstructed under time pressure from whatever happened most recen
 
 These skills exist to give the people loop the same paper trail the code loop already has.
 That's the whole idea: **the loop you can see is the loop you can improve.**
+
+Routing PR reviews is the other half of the week, and `/pr-assignments-slack` handles it — but
+how that fits the picture above is still being worked out, so the illustration stays on the one
+loop it can state plainly.
 
 ## Install
 
@@ -224,10 +228,22 @@ properties at the top of the file, and node centres sit on a documented grid —
 a stage or adding a fourth one is a small, local change rather than a redraw. It adapts to
 GitHub's light and dark themes from a single file and honours `prefers-reduced-motion`.
 
-For places that can't display an animated SVG — a slide, a talk, a social card —
-`scripts/render-gif.py` rasterises it to a GIF. It needs `brew install librsvg gifsicle`
-and has not been run here. The SVG stays the source of truth; regenerate the GIF after
-editing it rather than the other way round.
+A second **review loop** lane — PR opened → reviewed → merged — is still in the file, wrapped
+in a comment block marked `REVIEW LOOP — HIDDEN, NOT DELETED`. Restoring it is three steps,
+listed there. It was set aside because it described the software lifecycle more than it
+described the manager's part in it.
+
+`assets/hero.gif` is the same illustration rasterised, for places that can't display an
+animated SVG — a slide, a talk, a social card. Regenerate it with:
+
+```bash
+brew install librsvg imagemagick gifsicle
+python3 scripts/render-gif.py --width 1000
+```
+
+Add `--theme dark` for a version that sits on a dark background; a GIF has no equivalent of
+`prefers-color-scheme`, so each theme is a separate file. The SVG stays the source of truth —
+regenerate the GIF after editing it, never the other way round.
 
 ## License
 
