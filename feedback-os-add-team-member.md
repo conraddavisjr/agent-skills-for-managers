@@ -1,5 +1,5 @@
 ---
-description: Onboard a new direct report into a Feedback OS Notion workspace — creates their profile card, year page, filtered year view, and their tab on the Observations database. Use when the manager says "add <name> to my team", "I have a new report starting", or "set up a page for our new hire".
+description: Onboard a new direct report into a Feedback OS Notion workspace — creates their profile card with avatar, their year page, and the filtered views that surface their observations. Use when the manager says "add <name> to my team", "I have a new report starting", or "set up a page for our new hire".
 allowed-tools:
   - mcp__claude_ai_Notion__notion-search
   - mcp__claude_ai_Notion__notion-fetch
@@ -77,6 +77,28 @@ Create a page whose parent is the **employee page from step 2**, titled with the
 
 If creating several years, **create them newest-first** — child pages render in creation order and the roster reads in reverse chronological order.
 
+## Step 3b — Lay out the employee page body
+
+Every employee page follows the same structure, in this order:
+
+1. Intro line: `Working years, most recent first. Open a year to see every observation logged for that period.`
+2. The year subpages from step 3
+3. A divider
+4. A **toggle heading 4** titled `✏️ Personal Notes` with bulleted children — the manager's own context (interests, travel, values, anything worth remembering before a 1:1)
+5. A divider
+6. `## All observations`, a one-line description, then the view from step 4b
+
+In Notion-flavored Markdown the notes section is:
+
+```
+---
+#### ✏️ Personal Notes {toggle="true"}
+	- 
+---
+```
+
+The children must be indented with a tab or they won't nest inside the toggle.
+
 ---
 
 ## Step 4 — Add the filtered view to that year page
@@ -97,12 +119,12 @@ SHOW "Observation", "Type", "KPI", "Date", "Status"
 
 ---
 
-## Step 5 — Add their tab to the Observations database
+## Step 4b — Add the "All observations" view to the employee page
 
-Create a view with `database_id` = the Observations database — **not** `parent_page_id`, which would create a linked view on a page instead of a database tab.
+Create a view with `parent_page_id` = the **employee page**, `data_source_id` = Observations.
 
 - Type: `table`
-- Name: the person's full name, exactly
+- Name: `<Full name> — all observations`
 - Configure:
 
 ```
@@ -110,6 +132,11 @@ FILTER "Employee Name" = "<Full name>"
 SORT BY "Date" DESC
 SHOW "Observation", "Date", "Type", "Status", "KPI"
 ```
+
+This is what a manager lands on when they click the person's card on the home page, so it matters more than the year views.
+
+> [!NOTE]
+> **Do not create a per-employee tab on the Observations database.** This was tried and rejected: Notion truncates the view tab bar to "2 more…" at only three views, so it does not scale past a few reports. Per-employee browsing happens through the card grid on the home page, not through tabs.
 
 ---
 
@@ -143,6 +170,40 @@ Consequences to respect:
 
 - Observations column order is `Observation, Date, Employee, Type, Status, KPI`. Preserve it.
 - **Never pass `SHOW` when updating a view the user already has**, including the default view — it overwrites their column order and widths.
-- Per-person tabs omit the `Employee` column, since it's identical on every row there.
 - On the Team page, the gallery/card view stays **first**.
-- Do not create a "Needs follow-up" view.
+- Do not create a "Needs follow-up" view, and do not create per-employee tabs.
+
+## Display settings these templates expect
+
+These are deliberate choices. If you create a new gallery or a new employee, match them.
+
+| Setting | Value | Why |
+| --- | --- | --- |
+| Gallery card size | **Small** | Minimises awkward sizing across differently-proportioned profile images |
+| Gallery card preview | **Page cover** | The `Photo` property does **not** render — see below |
+| Fit image | **Off** | So the cover fills the card instead of letterboxing |
+| Open pages in | **Full page** | Not centre peek |
+| Hidden on employee pages | `Observations`, `Photo`, `Start Date` | The Observations relation is very long and dominates the top of the page |
+
+## Images
+
+> [!WARNING]
+> **A `Files & media` property populated from an external URL via the API does not render as a gallery card cover.** Notion ingests it into a file object that shows as an inert "png" chip and leaves the card blank. Page **icons** and page **covers** set from the same URL render fine.
+
+So: set the page `icon` **and** the page `cover`, and let the gallery preview read the page cover. The `Photo` property is effectively vestigial — populate it if you like, but never rely on it for display.
+
+> [!WARNING]
+> **Page covers accept external HTTPS URLs only.** A `file-upload://` source from `create-attachment` is rejected with "Invalid page cover URL", so an image uploaded to Notion cannot become a cover. Covers must point at a publicly reachable URL.
+
+Circular avatars (`radius=50`) leave transparent corners that look wrong on a filled card. Omit `radius` so the avatar is a solid-background square.
+
+## Settings the API cannot set
+
+Report these to the user rather than silently skipping them — they must be done in the Notion UI:
+
+- **Open pages in** (full page vs. peek) — no directive exists in the view DSL
+- **Property visibility** on database row pages — not exposed by any tool
+- **Card preview / card size / fit image** — `COVER` only accepts real property names; it rejects `"Page cover"`
+- **Database templates**, including default property values — cannot be created via API
+
+Property visibility is **database-wide**, and card settings are **per-view**, so once a human sets them they apply automatically to every employee added later. Only the page body structure needs a database template to be inherited.
