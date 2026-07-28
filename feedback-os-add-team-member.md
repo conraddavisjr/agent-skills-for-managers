@@ -1,46 +1,77 @@
 ---
-description: Onboard a new direct report into a Feedback OS Notion workspace — creates their profile card with avatar, their year page, and the filtered views that surface their observations. Use when the manager says "add <name> to my team", "I have a new report starting", or "set up a page for our new hire".
+command: add
+description: Onboard a new direct report into a Feedback OS Notion workspace — creates their profile card with avatar, their year page, and the filtered views that surface their observations. Use when the manager says "/add <name>", "add <name> to my team", "I have a new report starting", or "set up a page for our new hire".
+argument-hint: <full name> [role] [team] [start date] [notion page url]
 allowed-tools:
   - mcp__claude_ai_Notion__notion-search
   - mcp__claude_ai_Notion__notion-fetch
   - mcp__claude_ai_Notion__notion-create-pages
   - mcp__claude_ai_Notion__notion-create-view
   - mcp__claude_ai_Notion__notion-query-data-sources
+  - Edit
 ---
 
-# /feedback-os-add-team-member
+# /add
 
 Add a team member to Feedback OS — a Notion template for managers who log observations about their reports over time.
 
 Onboarding someone requires four linked objects created in the right order. Notion cannot auto-create a view when a row is added, so this is otherwise a repetitive manual chore. Follow every step in order.
 
+Everything after `/add` is `$ARGUMENTS`: a name, optionally a role, team, start date, and a Notion URL. Parse what's there, ask only for what's missing and required.
+
 ---
 
-## Step 0 — Resolve the workspace IDs
+## Configuration — the target page
 
-**Never hardcode IDs.** Every installation of this template has different ones.
+<!-- FEEDBACK_OS_TARGET: https://www.notion.so/3abf8853595081a4b59cf9ddbadfa4f9 -->
 
-1. Call `notion-search` with query `Feedback OS Team Observation Tracker`.
-2. `notion-fetch` the top-level page. Its content contains the `Observations` database and a `Team` subpage.
-3. `notion-fetch` the `Team` page to get the **Employees** database, and `notion-fetch` that database to read its `<data-source url="collection://...">` tag.
-4. `notion-fetch` the `Observations` database for its data source ID.
+The HTML comment above is the **pinned target**: the Feedback OS home page this command writes into. It is a hint, not a guarantee — pages get renamed, moved, and re-duplicated. Treat it as the first thing to try and the last thing to update, never as something to trust blindly.
 
-You now need four values:
+To repoint this command permanently, replace the URL in that comment. To repoint it for a single run, pass a Notion URL in `$ARGUMENTS`.
+
+The pinned URL points at the author's tracker. If you installed this from the repo, the first run won't be able to fetch it and will fall through to searching your own workspace — that is expected, not an error. `Edit` is in `allowed-tools` **only** so this one line can be rewritten once you confirm the right page; do not use it to edit anything else.
+
+---
+
+## Step 0 — Resolve the target page
+
+**Never hardcode database or data source IDs.** They differ in every workspace and change when a template is re-duplicated. Resolve them fresh on every run, in this order, stopping at the first candidate that passes validation:
+
+1. **A Notion URL or bare page ID in `$ARGUMENTS`.** An explicit link always wins.
+2. **The pinned `FEEDBACK_OS_TARGET` URL above**, if one is set. If fetching it fails — deleted, moved, or a workspace you have no access to — say so in one line and continue to step 3. A stale pin is not a reason to stop.
+3. **Search by name.** Call `notion-search` for `Feedback OS Team Observation Tracker`, then — if that returns nothing useful — `Feedback OS`, then `team observation tracker`, then `observations manager feedback`. The page name is expected to drift; do not require an exact match.
+4. **Search by structure.** Query for the contents rather than the title: `notion-search` for `Employee Name observation KPI` or fetch any `Observations` database that surfaces and walk up its `<ancestor-path>` to the home page. A renamed home page still contains databases whose property names are distinctive.
+5. **Ask.** If nothing validates, or two or more candidates do, stop and ask the user for a link to their Feedback OS page. Show what you found and why it was rejected or ambiguous. **Never guess, and never create a new tracker** — a wrong target silently scatters pages across the wrong workspace.
+
+### Validate the candidate before writing
+
+A candidate is the right target only if `notion-fetch` on it reveals **both**:
+
+- an **Observations** database whose schema has an `Observation` title, a `Date` date, an `Employee` relation, and an `Employee Name` **text** property
+- an **Employees** database — the one the `Employee` relation points at — with a `Name` title and `Status`, `Role`, `Team` properties
+
+Match on this shape, not on names. Any of these may have been renamed; the reference template ships them as `Observations` and `Employees`, and the Employees database may sit inline on the home page or on a `Team` subpage. Resolve Employees by following the `dataSourceUrl` on the Observations `Employee` relation — that link survives every rename.
+
+If the shape matches but a property is missing, say which one and stop. In particular: **if there is no `Employee Name` text property**, the views must filter on the `Employee` relation, which the API cannot write — see *Filtering* below. Report that rather than creating views that silently show everyone.
+
+Carry four values out of this step:
 
 ```
 Employees    database id  +  data source id
 Observations database id  +  data source id
 ```
 
-If the search returns nothing, the user either hasn't duplicated the template or renamed it. Ask for a link to their Feedback OS page rather than guessing.
+### After resolving
 
-**Before writing anything**, confirm the Observations schema by reading its properties. If it has an `Employee Name` text property, you are on the text-filter variant — see *Filtering* below. If it does not, the views filter on the `Employee` relation and must be configured through the Notion UI, not the API.
+If the target came from anywhere other than the pinned URL (steps 1, 3, 4, or 5), tell the user at the end which page you used and offer to update the `FEEDBACK_OS_TARGET` comment in this file so the next run resolves in one call. Do not edit the file without being asked.
 
 ---
 
 ## Step 1 — Gather inputs
 
-Ask only for what's missing. Don't interrogate the user for fields with sensible defaults.
+Take whatever `$ARGUMENTS` already supplied — `/add Priya Raman, senior designer, Design, starting Monday` should need no follow-up question. Ask only for what's missing. Don't interrogate the user for fields with sensible defaults.
+
+Full name is the only hard requirement; if `$ARGUMENTS` is empty, ask for it. Resolve relative dates ("Monday", "next week") against today before writing.
 
 | Input | Required | Default |
 | --- | --- | --- |
@@ -147,7 +178,7 @@ Query the new year view in `view` mode and confirm what comes back.
 - Zero rows for a brand-new hire is a **pass** — they have no observations yet.
 - Rows belonging to **other people** is a **failure**: the filter was silently dropped. Re-read *Filtering* below.
 
-Report what was created with a link to the new employee page. Never invent sample observations for a real person.
+Report what was created with a link to the new employee page, and name the target page you wrote into so a wrong-workspace mistake is caught immediately. If the target came from anywhere but the pinned URL, offer to pin it (see *After resolving* in step 0). Never invent sample observations for a real person.
 
 ---
 
