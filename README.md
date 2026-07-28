@@ -6,9 +6,11 @@ you already work.
 
 ![Two loops a manager runs: observe, 1:1, growth — and PR opened, reviewed, merged](./assets/hero.svg)
 
-Every skill here is a single markdown file: YAML frontmatter declaring what it does and
-which tools it may touch, then step-by-step instructions an agent follows. They run in
-Claude Code, Cursor, Windsurf, or anything else that reads markdown instructions.
+Every command lives in its own folder under `commands/`: a `command.md` with YAML
+frontmatter declaring what it does and which tools it may touch, then step-by-step
+instructions an agent follows. Each one installs as a single self-contained markdown file,
+so they run in Claude Code, Cursor, Windsurf, or anything else that reads markdown
+instructions.
 
 ## Commands
 
@@ -71,7 +73,7 @@ After installing into Claude Code, restart it and the commands appear as slash c
 
 ### `/add`
 
-*File: `feedback-os-add-team-member.md`*
+*Source: `commands/feedback-os-add-team-member/`*
 
 Onboards a new direct report into **Feedback OS**, a Notion template for managers who log
 observations about their team over time.
@@ -121,6 +123,8 @@ The template works around this with a text column, and the command explains when
 
 ### `/pr-assignments-slack`
 
+*Source: `commands/pr-assignments-slack/`*
+
 Composes and posts a PR review focus message to Slack for the current sprint's Peer Review
 tickets.
 
@@ -130,14 +134,24 @@ requirements — while skipping anyone who's out based on the team's time-off ca
 you the message and waits for approval before posting.
 
 **Requires:** the Atlassian, Slack, and Google Calendar MCP connectors, plus the `gh` CLI.
-Engineer profiles and channel IDs inside the file are specific to one team — fork and edit
-before using.
+
+Everything team-specific — the eight engineer profiles, story-point caps, co-reviewer rules,
+and the GitHub-login-to-Slack-ID table — lives in `commands/pr-assignments-slack/team-config.md`,
+separate from the procedure in `command.md`. Fork and rewrite that one file; the steps around
+it stay as they are. The installer stitches the two back together, so what lands in
+`.claude/commands/` is still a single self-contained file.
 
 ---
 
 ## Writing your own
 
-Drop a markdown file in the repo root:
+Make a folder under `commands/` with a `command.md` inside it:
+
+```
+commands/
+  your-command-name/
+    command.md
+```
 
 ```markdown
 ---
@@ -153,19 +167,43 @@ allowed-tools:
 Instructions, in order.
 ```
 
-The installer picks it up automatically. `description` is what shows in `--list`, and
-`README.md` is ignored.
+The installer picks it up automatically — any directory under `commands/` containing a
+`command.md` is a command, and directories without one are ignored.
 
 | Frontmatter | Effect |
 | --- | --- |
 | `description` | Shown in `--list`; what the agent matches an ask against |
-| `command` | Slash command to bind to. Optional — defaults to the filename |
+| `command` | Slash command to bind to. Optional — defaults to the folder name |
 | `allowed-tools` | Tools the command may use |
 
-`command` exists so a file can keep a descriptive name in this repo while installing as
-something short you'd actually type: `feedback-os-add-team-member.md` installs as `add.md`,
-giving you `/add`. Keep these short names distinct — the installed filename wins, so two files
-claiming the same `command` will collide in `.claude/commands/`.
+`command` exists so a folder can keep a descriptive name in this repo while installing as
+something short you'd actually type: `commands/feedback-os-add-team-member/` installs as
+`add.md`, giving you `/add`. Keep these short names distinct — the installed filename wins,
+so two commands claiming the same `command` will collide in `.claude/commands/`.
+
+### Splitting a long command
+
+A command can be authored in pieces and stitched back together at install time:
+
+```markdown
+<!-- include: team-config.md -->
+```
+
+The installer replaces that line with the contents of the named file, resolved relative to
+the command's own folder. Use it to lift the parts a forker will want to rewrite — team
+rosters, IDs, thresholds — out of the procedure that surrounds them.
+
+Rules worth knowing:
+
+- **Installs stay flat.** Everything under `.claude/commands/` becomes a slash command, so a
+  reference file installed alongside would show up as junk in the command list. Includes are
+  inlined instead, and each command still lands as exactly one file.
+- **Frontmatter in an included file is dropped**, so the rendered command keeps one
+  frontmatter block, at the top.
+- **Includes don't nest** and can't reach outside their command's folder. One level keeps the
+  failure modes obvious.
+- **A broken include fails the whole run** before anything is written, rather than leaving a
+  half-installed directory.
 
 Two things worth doing:
 
