@@ -35,7 +35,7 @@ The command never hardcodes database IDs — it resolves them on every run, so i
 workspace. It tries, in order:
 
 1. A Notion URL you passed as an argument
-2. The pinned `FEEDBACK_OS_TARGET` URL near the top of `command.md`
+2. The pinned `TRACKER_TARGET` URL near the top of `command.md`
 3. A search by name, several phrasings, no exact match required
 4. A search by **structure** — a tracker is identified by having an Observations database
    with an `Employee Name` text column related to an Employees database. No rename touches

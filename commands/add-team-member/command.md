@@ -23,9 +23,9 @@ Everything after `/add` is `$ARGUMENTS`: a name, optionally a role, team, start 
 
 ## Configuration — the target page
 
-<!-- FEEDBACK_OS_TARGET: https://www.notion.so/3abf8853595081a4b59cf9ddbadfa4f9 -->
+<!-- TRACKER_TARGET: https://www.notion.so/3abf8853595081a4b59cf9ddbadfa4f9 -->
 
-The HTML comment above is the **pinned target**: the Feedback OS home page this command writes into. It is a hint, not a guarantee — pages get renamed, moved, and re-duplicated. Treat it as the first thing to try and the last thing to update, never as something to trust blindly.
+The HTML comment above is the **pinned target**: the tracker home page this command writes into. It is a hint, not a guarantee — pages get renamed, moved, and re-duplicated. Treat it as the first thing to try and the last thing to update, never as something to trust blindly.
 
 To repoint this command permanently, replace the URL in that comment. To repoint it for a single run, pass a Notion URL in `$ARGUMENTS`.
 
@@ -38,7 +38,7 @@ The pinned URL points at the author's tracker. If you installed this from the re
 **Never hardcode database or data source IDs.** They differ in every workspace and change when a template is re-duplicated. Resolve them fresh on every run, in this order, stopping at the first candidate that passes validation:
 
 1. **A Notion URL or bare page ID in `$ARGUMENTS`.** An explicit link always wins.
-2. **The pinned `FEEDBACK_OS_TARGET` URL above**, if one is set. If fetching it fails — deleted, moved, or a workspace you have no access to — say so in one line and continue to step 3. A stale pin is not a reason to stop.
+2. **The pinned `TRACKER_TARGET` URL above**, if one is set. If fetching it fails — deleted, moved, or a workspace you have no access to — say so in one line and continue to step 3. A stale pin is not a reason to stop.
 3. **Search by name.** Call `notion-search` for `Feedback OS Team Observation Tracker`, then — if that returns nothing useful — `Feedback OS`, then `team observation tracker`, then `observations manager feedback`. The page name is expected to drift; do not require an exact match.
 4. **Search by structure.** Query for the contents rather than the title: `notion-search` for `Employee Name observation KPI` or fetch any `Observations` database that surfaces and walk up its `<ancestor-path>` to the home page. A renamed home page still contains databases whose property names are distinctive.
 5. **Ask.** If nothing validates, or two or more candidates do, stop and ask the user for a link to their Feedback OS page. Show what you found and why it was rejected or ambiguous. **Never guess, and never create a new tracker** — a wrong target silently scatters pages across the wrong workspace.
@@ -63,7 +63,7 @@ Observations database id  +  data source id
 
 ### After resolving
 
-If the target came from anywhere other than the pinned URL (steps 1, 3, 4, or 5), tell the user at the end which page you used and offer to update the `FEEDBACK_OS_TARGET` comment in this file so the next run resolves in one call. Do not edit the file without being asked.
+If the target came from anywhere other than the pinned URL (steps 1, 3, 4, or 5), tell the user at the end which page you used and offer to update the `TRACKER_TARGET` comment in this file so the next run resolves in one call. Do not edit the file without being asked.
 
 ---
 

@@ -98,14 +98,14 @@ date, and optionally a Notion URL.
 
 **Finding your tracker.** The command never assumes database IDs — it resolves them on every
 run, so it works in any workspace. It tries, in order: a Notion URL you passed in, the pinned
-`FEEDBACK_OS_TARGET` URL near the top of the command file, a search by name, then a search by
+`TRACKER_TARGET` URL near the top of the command file, a search by name, then a search by
 *structure* — a tracker is identified by having an Observations database with an
 `Employee Name` column related to an Employees database, which survives any rename. If nothing
 matches, or more than one does, it stops and asks you for the link rather than guessing or
 creating a second tracker.
 
 So renaming your page is fine. To make the rename permanent, edit the URL in the
-`FEEDBACK_OS_TARGET` comment at the top of the command file; the command offers to do this for
+`TRACKER_TARGET` comment at the top of the command file; the command offers to do this for
 you whenever it had to fall back to searching. The pin ships pointing at my tracker, which you
 can't read — your first run will quietly skip it and search your workspace instead.
 
