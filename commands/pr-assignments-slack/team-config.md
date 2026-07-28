@@ -1,122 +1,142 @@
+## Workspace
+
+Everything in this section is a placeholder. Replace each value before the first run —
+none of these will resolve against your systems as shipped.
+
+| Setting | Placeholder | Where to find yours |
+| --- | --- | --- |
+| Atlassian site | `<your-site>` | The subdomain in `https://<your-site>.atlassian.net` |
+| Jira project key | `<PROJECT>` | The prefix on ticket IDs, e.g. `ENG` in `ENG-1420` |
+| Jira team field | `customfield_10001` | Field IDs differ per site — check `/rest/api/3/field` |
+| Jira story-point field | `customfield_10016` | Same |
+| GitHub repos | `<org>/<repo-a>`, `<org>/<repo-b>` | The repos whose PRs you review |
+| Slack channel | `#<your-channel>` | Where the message gets posted |
+| Slack channel ID | `<SLACK_CHANNEL_ID>` | Channel details → bottom of the About tab |
+
+> [!IMPORTANT]
+> If any placeholder is still in angle brackets when the command runs, stop and tell the user
+> which one, rather than guessing or calling an API with a literal `<PROJECT>`.
+
+---
+
+## Teams
+
+The team names below are examples. Use whatever values your Jira team field actually returns,
+and keep them consistent across every profile.
+
+`Platform` · `Web` · `Data` · `Infra`
+
+---
+
 ## Engineer Profiles
 
-Engineers not listed here are **excluded from auto-assignment**.
+**This is the section you are expected to rewrite.** Engineers not listed here are excluded
+from auto-assignment entirely, so an unedited file assigns nobody.
+
+Each profile below demonstrates a different rule the selection logic understands. Keep the
+shapes; replace the people. Delete any archetype you don't need, and add as many as you like.
+
+Both identifiers are placeholders and will not resolve:
+
+- `**GitHub:**` must be the login exactly as it appears on a PR (`gh pr list` shows it)
+- `**Slack:**` must be the member ID like `U01ABCDEF23`, not a display name — profile → ⋮ →
+  Copy member ID
 
 ---
 
-### Alejandro Hernandez
-- **GitHub:** stellarhoof | **Slack:** U02N8C1SREJ
+### Engineer 1 — the generalist lead
+
+- **GitHub:** `<github-login-1>` | **Slack:** `<slack-user-id-1>`
 - **Level:** Staff Engineer
-- **Story point cap:** 20 (expandable to 30 only when no other eligible engineers remain for a given PR)
-- **Eligible teams:** Greenfield (primary), Federal (secondary), WebApp (tertiary)
+- **Story point cap:** 20 (expandable to 30 only when no other eligible engineer remains)
+- **Eligible teams:** Platform (primary), Data (secondary), Web (tertiary)
 - **Rules:**
-  - **Hotfix tickets take top priority** — assign Alejandro to any PR whose Jira ticket title contains "hotfix" (case-insensitive), regardless of team
-  - For non-hotfix PRs, assign in priority order: Greenfield → Federal → WebApp
-  - Only expand cap from 20 to 30 when all other eligible engineers are at capacity or unavailable
-  - **WebApp limit:** Assign Alejandro to a maximum of **1 WebApp PR per run**. Exceptions: (1) the ticket involves a Design System change, or (2) no other eligible engineers are available for that WebApp PR
+  - **Hotfix tickets take top priority** — assign to any PR whose ticket title contains
+    "hotfix" (case-insensitive), regardless of team
+  - For non-hotfix PRs, assign in priority order: Platform → Data → Web
+  - Only expand the cap from 20 to 30 when every other eligible engineer is at capacity or
+    unavailable
+  - **Web limit:** at most **1** Web PR per run, unless the ticket is a design-system change
+    or no one else is eligible
+
+*Demonstrates: multi-team priority ordering, a conditional cap, a per-run team limit, and an
+override that ignores team eligibility.*
 
 ---
 
-### Juan Pablo Huaco (JP)
-- **GitHub:** jhuaco-govspend | **Slack:** U09JSQ2DTT3
-- **Level:** Senior Engineer — high-performing IC
-- **Story point cap:** 18
-- **Eligible teams:** AI Platform
-- **Rules:**
-  - Favor for large/complex tickets (high story points)
-  - Can also take smaller tasks
-  - Acts as required lead co-reviewer for Kasey Pasqualini and Marc Melvin
+### Engineer 2 — the single-team specialist
 
----
-
-### José Bezerra
-- **GitHub:** JBezerra | **Slack:** U071WSRFJD8
-- **Level:** Top engineer
-- **Story point cap:** 20
-- **Eligible teams:** Greenfield (primary), AI Platform (primary), WebApp Design System tickets (eligible)
-- **Rules:**
-  - Strong preference for complex PRs implementing architectural changes
-  - Eligible for WebApp Design System tickets in addition to Greenfield and AI Platform
-  - Acts as required lead co-reviewer for Kasey Pasqualini and Marc Melvin
-
----
-
-### Yasmani Avila
-- **GitHub:** yavilagovspend | **Slack:** U09JD13RYHK
+- **GitHub:** `<github-login-2>` | **Slack:** `<slack-user-id-2>`
 - **Level:** Senior Engineer
 - **Story point cap:** 18
-- **Eligible teams:** Greenfield (primary — sole specialization), AI Platform (overflow only)
+- **Eligible teams:** Platform (primary — sole specialization), Data (overflow only)
 - **Rules:**
-  - Greenfield is Yasmani's sole primary focus — he is **Tier 1** for all Greenfield PRs and should always be selected before engineers who cover Greenfield alongside other teams
-  - Eligible for AI Platform only when Greenfield PRs are already covered (Tier 3 for AI Platform)
+  - Platform is this engineer's sole focus — **Tier 1** for all Platform PRs, always selected
+    ahead of engineers who cover Platform alongside other teams
+  - Eligible for Data only once Platform PRs are covered (Tier 3 there)
+
+*Demonstrates: the Tier 1 sole-specialist rule that drives the priority sort in Step 6.*
 
 ---
 
-### Sandhya Govindaraju
-- **GitHub:** sandhya-spend | **Slack:** U0786NNGD3K
-- **Level:** Senior Engineer — Federal team lead
+### Engineer 3 — the lead co-reviewer
+
+- **GitHub:** `<github-login-3>` | **Slack:** `<slack-user-id-3>`
+- **Level:** Senior Engineer — high-performing IC
 - **Story point cap:** 18
-- **Eligible teams:** Federal (primary), WebApp (exceptions only: Saved Searches, AI panel, core table/filter changes, Exports feature)
+- **Eligible teams:** Data
 - **Rules:**
-  - Default to Federal tickets
-  - WebApp eligibility is limited to the CRM-related exceptions listed above
+  - Favour for large or complex tickets; can also absorb small ones
+  - Acts as the required lead co-reviewer for Engineer 4
+
+*Demonstrates: an engineer other profiles depend on. If you delete this archetype, delete the
+co-reviewer requirement on Engineer 4 too, or Engineer 4 becomes unassignable.*
 
 ---
 
-### Pranita Bhadviya
-- **GitHub:** PranitaJainB | **Slack:** U0726F8PZ1C
+### Engineer 4 — the supervised reviewer
+
+- **GitHub:** `<github-login-4>` | **Slack:** `<slack-user-id-4>`
+- **Level:** Engineer — high review volume, lighter depth
+- **Story point cap:** 30 (conditional — see rules)
+- **Eligible teams:** Data
+- **Rules:**
+  - Never assign as the sole senior reviewer on a PR
+  - The cap of 30 applies **only if** Engineer 3 is also assigned to the same PR
+  - If Engineer 3 is not co-assigned, the effective cap is 0 — do not assign
+
+*Demonstrates: a conditional cap that collapses to zero, and a dependency between two
+profiles. This is the rule most likely to silently exclude someone, so check it first when an
+engineer is never getting picked.*
+
+---
+
+### Engineer 5 — the high-volume reviewer
+
+- **GitHub:** `<github-login-5>` | **Slack:** `<slack-user-id-5>`
 - **Level:** QA Engineer — high review volume
 - **Story point cap:** 26
-- **Eligible teams:** Greenfield (highest priority), Federal (second), AI Platform (third)
+- **Eligible teams:** Platform (highest priority), Data (second), Infra (third)
 - **Rules:**
-  - Prioritize: high-priority bugs → major project tickets (stories with parent Epic) → one-off tickets
+  - Prioritise: high-priority bugs → project tickets with a parent epic → one-off tickets
+
+*Demonstrates: a large cap with an ordering preference driven by ticket type rather than team.*
 
 ---
 
-### Kasey Pasqualini
-- **GitHub:** kpasqualini | **Slack:** U02NR58JJ86
-- **Level:** Senior Software Engineer
-- **Story point cap:** 18
-- **Eligible teams:** AI Platform only
-- **Rules:**
-  - Can handle high volumes of small tickets
-  - Can review large/complex tickets **only if** José Bezerra (JBezerra) or Juan Pablo Huaco (jhuaco-govspend) is also assigned as a reviewer on the same PR
-  - Do not assign without a lead co-reviewer (JP or José) on any complex or high-point PR
+## GitHub Login → Slack User ID
 
----
-
-### Marc Melvin
-- **GitHub:** lusid | **Slack:** U02NTH868BB
-- **Level:** AI Developer — uses AI to conduct reviews; high volume, cursory quality
-- **Story point cap:** 30 (conditional — see rules)
-- **Eligible teams:** AI Platform only
-- **Rules:**
-  - Do not assign as sole senior reviewer on any PR
-  - Cap of 30 applies **only if** Juan Pablo Huaco (jhuaco-govspend) or José Bezerra (JBezerra) is also assigned on those same PRs
-  - If neither JP nor José is co-assigned, effective cap is 0 — do not assign
-
----
-
-## GitHub Login → Slack User ID Mapping
-
-Use this mapping to convert GitHub logins to Slack user IDs for mentions. If a login is not in this table, fall back to `@{login}` (plain text).
+Used to turn PR authors and reviewers into Slack mentions. A login missing from this table
+falls back to plain text `@login`, which notifies nobody — so an unedited table produces a
+message that mentions no one.
 
 | GitHub Login | Slack User ID |
-|---|---|
-| kpasqualini | U02NR58JJ86 |
-| jhuaco-govspend | U09JSQ2DTT3 |
-| conraddavisjr | U06CLD11FML |
-| dshishkov | U02NF408Q0K |
-| JBezerra | U071WSRFJD8 |
-| yavilagovspend | U09JD13RYHK |
-| manuelluques-govspend | U09LPSM5FK9 |
-| cescudero-dev | U0A6TKS868H |
-| sandhya-spend | U0786NNGD3K |
-| nico-olivares | U02NTN1AV09 |
-| PranitaJainB | U0726F8PZ1C |
-| petelis | U03CHHSUXAQ |
-| mhussain110 | U09CALJ0PSB |
-| mperez-govspend | U09JT340Z25 |
-| lusid | U02NTH868BB |
-| stellarhoof | U02N8C1SREJ |
-| jcruz-code | U0B4E3CK351 |
+| --- | --- |
+| `<github-login-1>` | `<slack-user-id-1>` |
+| `<github-login-2>` | `<slack-user-id-2>` |
+| `<github-login-3>` | `<slack-user-id-3>` |
+| `<github-login-4>` | `<slack-user-id-4>` |
+| `<github-login-5>` | `<slack-user-id-5>` |
+
+Add a row for anyone who reviews PRs, including people with no profile above — reviewers who
+have already approved still need to be mentioned by ID.

@@ -1,5 +1,5 @@
 ---
-description: Compose and post a PR review focus message to #scrum-the-bridge for the current sprint's Peer Review tickets. Cross-references Jira with open GitHub PRs, applies engineer profiles and availability checks, and produces the formatted Slack message.
+description: Compose and post a PR review focus message to your team's Slack channel for the current sprint's Peer Review tickets. Cross-references Jira with open GitHub PRs, applies engineer profiles and availability checks, and produces the formatted Slack message.
 allowed-tools:
   - Bash(gh pr list *)
   - mcp__claude_ai_Atlassian__getAccessibleAtlassianResources
@@ -11,13 +11,26 @@ allowed-tools:
 
 # /pr-assignments-slack
 
-Compose and post a PR review focus message to #scrum-the-bridge. Follow every step in order.
+Compose and post a PR review focus message to your team's Slack channel. Follow every step in order.
+
+This command spans **three systems**: Jira supplies the tickets, GitHub supplies the pull requests, and
+Slack is where the result is posted. Google Calendar is consulted for time off. All of them must be
+connected before a run can succeed.
+
+Every site-specific value — Jira project, GitHub repos, Slack channel, and the engineer profiles that
+drive reviewer selection — lives in the **Workspace** and **Engineer Profiles** sections below. They
+ship as placeholders in angle brackets. If you meet one that still looks like `<PROJECT>` or
+`<github-login-1>`, stop and tell the user which value is unset instead of guessing.
+
+---
+
+<!-- include: team-config.md -->
 
 ---
 
 ## Step 1 — Resolve Jira Cloud ID
 
-Call `mcp__claude_ai_Atlassian__getAccessibleAtlassianResources`. Find the resource whose URL contains `govspend` and note its `id` as **cloudId**.
+Call `mcp__claude_ai_Atlassian__getAccessibleAtlassianResources`. Find the resource whose URL contains the **Atlassian site** from Workspace and note its `id` as **cloudId**.
 
 If not found, tell the user to check Atlassian MCP auth and stop.
 
@@ -30,17 +43,17 @@ Call `mcp__claude_ai_Atlassian__searchJiraIssuesUsingJql`:
 ```json
 {
   "cloudId": "<cloudId>",
-  "jql": "project = GS AND status = 'Peer Review' AND sprint in openSprints() ORDER BY updated DESC",
+  "jql": "project = <PROJECT> AND status = 'Peer Review' AND sprint in openSprints() ORDER BY updated DESC",
   "fields": ["summary", "status", "customfield_10001", "customfield_10016"],
   "maxResults": 100
 }
 ```
 
 For each ticket, store:
-- **key** → ticket ID (e.g. GS-15600)
+- **key** → ticket ID (e.g. `<PROJECT>-1420`)
 - **summary** → ticket title
-- **url** → `https://govspend.atlassian.net/browse/{key}`
-- **team** → `customfield_10001.name` (e.g. "AI Platform", "Greenfield", "Federal", "WebApp")
+- **url** → `https://<your-site>.atlassian.net/browse/{key}`
+- **team** → the Jira team field from Workspace, `.name` (see **Teams** above)
 - **storyPoints** → `customfield_10016` (default to `0` if null/absent)
 - **isHotfix** → `true` if the word "hotfix" appears anywhere in the summary (case-insensitive)
 
@@ -53,18 +66,18 @@ Store as **jiraTickets** (map: key → { summary, url, team, storyPoints, isHotf
 Run sequentially:
 
 ```bash
-gh pr list -R smartprocure/spark --state open --limit 200 --json number,title,url,headRefName,author,reviewRequests,latestReviews,reviewDecision,isDraft,state
-gh pr list -R smartprocure/spark-mcp --state open --limit 200 --json number,title,url,headRefName,author,reviewRequests,latestReviews,reviewDecision,isDraft,state
-gh pr list -R smartprocure/contexture --state open --limit 200 --json number,title,url,headRefName,author,reviewRequests,latestReviews,reviewDecision,isDraft,state
+gh pr list -R <org>/<repo-a> --state open --limit 200 --json number,title,url,headRefName,author,reviewRequests,latestReviews,reviewDecision,isDraft,state
+gh pr list -R <org>/<repo-b> --state open --limit 200 --json number,title,url,headRefName,author,reviewRequests,latestReviews,reviewDecision,isDraft,state
+gh pr list -R <org>/<repo-c> --state open --limit 200 --json number,title,url,headRefName,author,reviewRequests,latestReviews,reviewDecision,isDraft,state
 ```
 
-Tag each PR with its repo name. Combine into **allPRs**. Skip any repo that fails auth.
+Run one command per repo listed under **GitHub repos** in Workspace. Tag each PR with its repo name. Combine into **allPRs**. Skip any repo that fails auth.
 
 ---
 
 ## Step 4 — Cross-Reference by Branch Name
 
-For each non-draft PR, extract the Jira ticket ID from `headRefName` using `^(GS-\d+)` (case-insensitive, uppercase result).
+For each non-draft PR, extract the Jira ticket ID from `headRefName` using `^(<PROJECT>-\d+)` (case-insensitive, uppercase result).
 
 **matched** = PRs whose extracted ticket ID is in **jiraTickets**, enriched with ticket data (team, storyPoints, isHotfix).
 **ticketsWithoutPR** = Jira tickets with no matching PR.
@@ -100,24 +113,20 @@ If `latestReviews` contains **2 or more** entries with `state == "APPROVED"` (bo
 
 1. **Get ticket data** → `team`, `storyPoints`, `isHotfix` from jiraTickets
 2. **Build candidate list** using Engineer Profiles:
-   - If `isHotfix == true` → Alejandro Hernandez is always eligible regardless of team; also include engineers normally eligible for that team
+   - If `isHotfix == true` → include every engineer whose profile grants hotfix priority regardless of team, plus the engineers normally eligible for that team
    - Otherwise, filter engineers by team eligibility per their profile
    - Remove: PR author, bots (`augmentcode`, `copilot-pull-request-reviewer`, `github-actions`, any login containing `[bot]`)
    - Remove engineers in **unavailableEngineers**
    - Remove engineers where `pointsUsed[login] + storyPoints > their effective cap`
-   - Apply special co-reviewer rules:
-     - **Kasey** (kpasqualini): only assign if José (JBezerra) or JP (jhuaco-govspend) is also being assigned to the same PR
-     - **Marc** (lusid): only assign if José (JBezerra) or JP (jhuaco-govspend) is also being assigned to the same PR; effective cap is 0 if neither is co-assigned
-3. **Select up to 2 engineers** — sort candidates by the following priority, then pick the top 2:
-   - **Tier 1 — sole/specialized primary**: The ticket's team is this engineer's only or defining primary team. These engineers are always preferred first.
-     - Greenfield → Yasmani Avila (yavilagovspend)
-     - AI Platform → Juan Pablo Huaco (jhuaco-govspend)
-     - Federal → Sandhya Govindaraju (sandhya-spend)
-   - **Tier 2 — shared primary**: The ticket's team is listed as primary, but the engineer covers multiple primary teams (e.g. José covers Greenfield + AI Platform; Pranita covers Greenfield + Federal + AI Platform; Alejandro covers Greenfield + Federal + WebApp)
-   - **Tier 3 — secondary / overflow / exception**: Secondary, overflow, or named-exception eligibility (e.g. Yasmani for AI Platform overflow, Alejandro for Federal secondary, Sandhya for WebApp CRM exceptions)
-   - **Tier 4 — tertiary**: Alejandro for WebApp (non-DS, non-hotfix)
+   - Apply co-reviewer rules **as written in each profile**: where a profile requires a named lead co-reviewer, that engineer is eligible only if the lead is also being assigned to this same PR. Where a profile's cap collapses to 0 without its lead, treat them as ineligible rather than assigning them alone.
+3. **Select up to 2 engineers** — sort candidates into tiers, then pick the top 2. Tier comes from how the engineer's own profile describes the ticket's team, not from any list here:
+   - **Tier 1 — sole / specialised primary**: the team is that engineer's only or defining primary focus (a profile saying "sole specialization" or naming exactly one primary team). Always preferred first.
+   - **Tier 2 — shared primary**: the team is listed as primary, but the engineer covers several primary teams.
+   - **Tier 3 — secondary / overflow / exception**: the team appears as secondary, overflow, or a named exception.
+   - **Tier 4 — tertiary**: the team is listed as tertiary.
    - Within the same tier, sort by remaining capacity (cap − pointsUsed) descending
-   - For Alejandro: use 20 as the base cap. Only expand to 30 if no other eligible engineers remain for a given PR
+   - Where a profile gives a base cap with a conditional expansion, use the **base** cap; expand only if no other eligible engineer remains for that PR
+   - Where a profile sets a per-run limit for a team, respect it across the whole run
 4. **Add storyPoints** to pointsUsed for each selected engineer
 5. Store selected reviewers as `{ login, role: "selected" }` for this PR
 
@@ -126,10 +135,6 @@ If `latestReviews` contains **2 or more** entries with `state == "APPROVED"` (bo
 After all PRs are processed, collect:
 - Any engineer where `pointsUsed >= cap` → ⚠️ capacity warning
 - Any PR where no reviewers could be selected (all eligible were over cap, unavailable, or excluded) → ⚠️ no reviewers available
-
----
-
-<!-- include: team-config.md -->
 
 ---
 
@@ -168,8 +173,8 @@ If no reviewers assigned: `_(no reviewers available)_`
 
 Display the full message to the user and ask:
 
-> "Here is the Slack message ready to post to #scrum-the-bridge. Reply **yes** to post, **edit** to revise, or **no** to skip."
+> "Here is the Slack message ready to post to #<your-channel>. Reply **yes** to post, **edit** to revise, or **no** to skip."
 
-- **yes** → call `mcp__claude_ai_Slack__slack_send_message` with `channel_id: "C08HKGM4GU9"` and the message. Confirm: "Posted ✓"
+- **yes** → call `mcp__claude_ai_Slack__slack_send_message` with `channel_id` set to the **Slack channel ID** from Workspace and the message. Confirm: "Posted ✓"
 - **edit** → ask for revised text, confirm again before posting
 - **no** → "Skipped."

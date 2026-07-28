@@ -59,13 +59,21 @@ function render(skill) {
     if (!target.startsWith(skill.dir + path.sep)) {
       throw new Error(`${skill.name}: include "${ref}" escapes its command directory`);
     }
+    // A gitignored `<name>.local.md` beside the file wins, so the version that
+    // ships can stay generic while your real config never leaves your machine.
+    const local = target.replace(/\.md$/, '.local.md');
+    if (fs.existsSync(local)) return readFragment(local);
     if (!fs.existsSync(target)) {
       throw new Error(`${skill.name}: include "${ref}" not found`);
     }
-    // Included fragments are body-only; drop any frontmatter they carry so the
-    // rendered file keeps exactly one frontmatter block, at the top.
-    return fs.readFileSync(target, 'utf8').replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '').trim();
+    return readFragment(target);
   });
+}
+
+// Included fragments are body-only; drop any frontmatter they carry so the
+// rendered file keeps exactly one frontmatter block, at the top.
+function readFragment(file) {
+  return fs.readFileSync(file, 'utf8').replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '').trim();
 }
 
 // Pull a scalar out of the YAML frontmatter without taking a YAML dependency.

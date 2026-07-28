@@ -73,10 +73,10 @@ After installing into Claude Code, restart it and the commands appear as slash c
 
 ### `/add`
 
-*Source: `commands/feedback-os-add-team-member/`*
+*Source: [`commands/add-team-member/`](./commands/add-team-member)*
 
-Onboards a new direct report into **Feedback OS**, a Notion template for managers who log
-observations about their team over time.
+Onboards a new direct report into your Notion team-observation tracker — the place a manager
+logs what they noticed about their team over time.
 
 Adding someone by hand means creating four linked things in the right order — a profile card,
 a year page, a filtered view on that year page, and an all-observations view on the profile.
@@ -123,7 +123,7 @@ The template works around this with a text column, and the command explains when
 
 ### `/pr-assignments-slack`
 
-*Source: `commands/pr-assignments-slack/`*
+*Source: [`commands/pr-assignments-slack/`](./commands/pr-assignments-slack)*
 
 Composes and posts a PR review focus message to Slack for the current sprint's Peer Review
 tickets.
@@ -177,7 +177,7 @@ The installer picks it up automatically — any directory under `commands/` cont
 | `allowed-tools` | Tools the command may use |
 
 `command` exists so a folder can keep a descriptive name in this repo while installing as
-something short you'd actually type: `commands/feedback-os-add-team-member/` installs as
+something short you'd actually type: `commands/add-team-member/` installs as
 `add.md`, giving you `/add`. Keep these short names distinct — the installed filename wins,
 so two commands claiming the same `command` will collide in `.claude/commands/`.
 
@@ -204,6 +204,9 @@ Rules worth knowing:
   failure modes obvious.
 - **A broken include fails the whole run** before anything is written, rather than leaving a
   half-installed directory.
+- **`<name>.local.md` beside the file wins.** `*.local.md` is gitignored, so the version that
+  ships can stay generic while your real config never leaves your machine — see
+  [`commands/pr-assignments-slack/`](./commands/pr-assignments-slack#keeping-your-real-config-out-of-git).
 
 Two things worth doing:
 
