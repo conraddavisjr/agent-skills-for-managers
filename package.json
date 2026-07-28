@@ -1,7 +1,7 @@
 {
-  "name": "@conraddavisjr/agent-skills",
+  "name": "@conraddavisjr/agent-skills-for-managers",
   "version": "0.1.0",
-  "description": "Reusable AI agent commands by Conrad Davis Jr. Install into any project with npx.",
+  "description": "Agent skills for engineering managers: team feedback records and PR review routing. Install into any project with npx.",
   "bin": {
     "agent-skills": "bin/install.js"
   },
@@ -16,15 +16,19 @@
     "agent",
     "skills",
     "commands",
-    "notion"
+    "notion",
+    "engineering-management",
+    "manager",
+    "one-on-ones",
+    "code-review"
   ],
   "author": "Conrad Davis Jr.",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/conraddavisjr/agent-skills.git"
+    "url": "git+https://github.com/conraddavisjr/agent-skills-for-managers.git"
   },
-  "homepage": "https://github.com/conraddavisjr/agent-skills#readme",
+  "homepage": "https://github.com/conraddavisjr/agent-skills-for-managers#readme",
   "engines": {
     "node": ">=16"
   }

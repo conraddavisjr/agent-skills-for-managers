@@ -1,0 +1,184 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 480" width="1200" height="480"
+     role="img" aria-labelledby="title desc" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Helvetica, Arial, sans-serif">
+  <title id="title">Two loops a manager runs</title>
+  <desc id="desc">A feedback loop — observe, one-on-one, growth — running above a review loop — pull request opened, reviewed, merged. Both circle back to their starting point.</desc>
+
+  <style>
+    /* ══════════════════════════════════════════════════════════════
+       TOKENS — change these to restyle the whole illustration.
+       Colours are mid-tones picked to stay legible on both the light
+       and dark GitHub themes, so this is one file rather than two.
+       ══════════════════════════════════════════════════════════════ */
+    svg {
+      --people:   #d2803f;  /* feedback loop accent  */
+      --code:     #4b8ef0;  /* review loop accent    */
+      --ink:      #3d444d;  /* node labels           */
+      --muted:    #7d868f;  /* lane titles, captions */
+      --hairline: #c9ced4;  /* node ring, return arc */
+      --speed:    7s;       /* one full circuit      */
+    }
+    @media (prefers-color-scheme: dark) {
+      svg {
+        --people:   #f0a868;
+        --code:     #8ab4ff;
+        --ink:      #e6edf3;
+        --muted:    #8b949e;
+        --hairline: #363c44;
+      }
+    }
+
+    .lane-title { fill: var(--muted); font-size: 17px; font-weight: 700; letter-spacing: .18em; }
+    .caption    { fill: var(--muted); font-size: 17px; }
+    .node-label { fill: var(--ink);   font-size: 19px; font-weight: 600; text-anchor: middle; }
+    .node-sub   { fill: var(--muted); font-size: 16px; text-anchor: middle; }
+
+    /* `color` is inherited, so it reaches glyphs inside the use-element
+       shadow trees, which class selectors cannot reach. */
+    .people { color: var(--people); }
+    .code   { color: var(--code);   }
+
+    .ring { fill: none; stroke: var(--hairline); stroke-width: 1.5; }
+
+    /* Arrowheads are drawn as explicit paths rather than marker elements,
+       so they inherit each lane's colour reliably. */
+    .tip     { fill: none; stroke: currentColor;      stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+    .tip-ret { fill: none; stroke: var(--hairline);   stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* Dotted connectors: dashes march forward along the path. */
+    .flow {
+      fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round;
+      stroke-dasharray: 1 11;
+      animation: march var(--speed) linear infinite;
+    }
+    @keyframes march { to { stroke-dashoffset: -120; } }
+
+    /* The return arc closes each loop — same rhythm, quieter. */
+    .return {
+      fill: none; stroke: var(--hairline); stroke-width: 1.5; stroke-linecap: round;
+      stroke-dasharray: 1 9;
+      animation: march var(--speed) linear infinite;
+    }
+
+    /* Nodes breathe as the dashes reach them. Delays are fractions of
+       --speed so each pulse tracks the travelling dots around the loop. */
+    .pulse { transform-box: fill-box; transform-origin: center; animation: pulse var(--speed) ease-in-out infinite; }
+    @keyframes pulse {
+      0%, 24%, 100% { transform: scale(1);     opacity: .94; }
+      9%            { transform: scale(1.055); opacity: 1;   }
+    }
+    .d1 { animation-delay: 0s; }
+    .d2 { animation-delay: calc(var(--speed) * -0.333); }
+    .d3 { animation-delay: calc(var(--speed) * -0.666); }
+
+    /* The review loop runs quicker, so the lanes drift out of phase
+       instead of beating in lockstep. */
+    .code { --speed: 5.6s; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .flow, .return, .pulse { animation: none; }
+    }
+  </style>
+
+  <defs>
+    <!-- Glyphs are stroked with currentColor so each lane tints its own. -->
+    <g id="g-observe" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M-9-12h13l5 5v19h-18z"/><path d="M4-12v5h5"/>
+      <path d="M-4-2h8M-4 4h5"/>
+    </g>
+    <g id="g-oneonone" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="-7" cy="-6" r="4.6"/><path d="M-15 9c0-4.7 3.6-7.6 8-7.6"/>
+      <circle cx="7"  cy="-6" r="4.6"/><path d="M-1 9c0-4.7 3.6-7.6 8-7.6s8 2.9 8 7.6"/>
+    </g>
+    <g id="g-growth" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M0 10V-4"/>
+      <path d="M0-4C0-10-5-13-10-13c0 6 5 9 10 9z"/>
+      <path d="M0-1c0-6 5-9 10-9 0 6-5 9-10 9z"/>
+    </g>
+    <g id="g-opened" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="-8" cy="-8" r="3.6"/><circle cx="-8" cy="9" r="3.6"/><path d="M-8-4.4v9.8"/>
+      <circle cx="9"  cy="-8" r="3.6"/><path d="M9-4.4c0 8-7 6.6-13.4 9.8"/>
+    </g>
+    <g id="g-reviewed" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M-12-9h24v15h-14l-6 5v-5h-4z"/>
+      <path d="M-4-2l2.6 2.8L4-4.6"/>
+    </g>
+    <g id="g-merged" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="-8" cy="-9" r="3.6"/><circle cx="-8" cy="9" r="3.6"/><path d="M-8-5.4v10.8"/>
+      <circle cx="10" cy="1"  r="3.6"/><path d="M-8-1.5c0 6.5 5.5 4.5 14.4 2.5"/>
+    </g>
+  </defs>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       EDIT LABELS HERE
+       Every word a reader sees lives between this marker and the one
+       at the bottom. Node centres sit on a fixed grid:
+         x = 114, 600, 1086   ·   y = 142 (feedback), 382 (review)
+       To add a fourth stage, copy a <g class="pulse"> block, place it
+       on the same row, and extend that lane's flow and return paths.
+       ══════════════════════════════════════════════════════════════ -->
+
+  <!-- ── FEEDBACK LOOP ─────────────────────────────────────────── -->
+  <g class="people">
+    <text class="lane-title" x="60" y="40">FEEDBACK LOOP</text>
+    <text class="caption"    x="60" y="63">what you notice becomes what they grow into</text>
+
+    <path class="flow"   d="M168 142 H540"/>
+    <path class="flow"   d="M654 142 H1026"/>
+    <path class="tip"    d="M540 136l6 6-6 6"/>
+    <path class="tip"    d="M1026 136l6 6-6 6"/>
+    <path class="return"  d="M1086 196 v18 a16 16 0 0 1-16 16 H130 a16 16 0 0 1-16-16 v-8"/>
+    <path class="tip-ret" d="M109 200l5-6 5 6"/>
+
+    <g class="pulse d1">
+      <circle class="ring" cx="114" cy="142" r="54"/>
+      <use href="#g-observe" x="114" y="130"/>
+      <text class="node-label" x="114" y="167">Observe</text>
+    </g>
+    <g class="pulse d2">
+      <circle class="ring" cx="600" cy="142" r="54"/>
+      <use href="#g-oneonone" x="600" y="130"/>
+      <text class="node-label" x="600" y="167">1:1</text>
+    </g>
+    <g class="pulse d3">
+      <circle class="ring" cx="1086" cy="142" r="54"/>
+      <use href="#g-growth" x="1086" y="130"/>
+      <text class="node-label" x="1086" y="167">Growth</text>
+    </g>
+
+    <text class="node-sub" x="357" y="130">log it</text>
+    <text class="node-sub" x="843" y="130">talk it through</text>
+  </g>
+
+  <!-- ── REVIEW LOOP ───────────────────────────────────────────── -->
+  <g class="code">
+    <text class="lane-title" x="60" y="280">REVIEW LOOP</text>
+    <text class="caption"    x="60" y="303">the same shape, on a shorter clock</text>
+
+    <path class="flow"   d="M168 382 H540"/>
+    <path class="flow"   d="M654 382 H1026"/>
+    <path class="tip"    d="M540 376l6 6-6 6"/>
+    <path class="tip"    d="M1026 376l6 6-6 6"/>
+    <path class="return"  d="M1086 436 v18 a16 16 0 0 1-16 16 H130 a16 16 0 0 1-16-16 v-8"/>
+    <path class="tip-ret" d="M109 440l5-6 5 6"/>
+
+    <g class="pulse d1">
+      <circle class="ring" cx="114" cy="382" r="54"/>
+      <use href="#g-opened" x="114" y="370"/>
+      <text class="node-label" x="114" y="407">Opened</text>
+    </g>
+    <g class="pulse d2">
+      <circle class="ring" cx="600" cy="382" r="54"/>
+      <use href="#g-reviewed" x="600" y="370"/>
+      <text class="node-label" x="600" y="407">Reviewed</text>
+    </g>
+    <g class="pulse d3">
+      <circle class="ring" cx="1086" cy="382" r="54"/>
+      <use href="#g-merged" x="1086" y="370"/>
+      <text class="node-label" x="1086" y="407">Merged</text>
+    </g>
+
+    <text class="node-sub" x="357" y="370">assign it</text>
+    <text class="node-sub" x="843" y="370">ship it</text>
+  </g>
+  <!-- ══════════════════════ END EDIT LABELS ═══════════════════════ -->
+</svg>
