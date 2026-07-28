@@ -88,25 +88,36 @@ Full name is the only hard requirement; if `$ARGUMENTS` is empty, ask for it. Re
 
 Create a page whose parent is the **Employees data source**.
 
-Properties: `Name`, `Role`, `Team`, `Status` = `Active`, `date:Start Date:start` (ISO `YYYY-MM-DD`), and `Photo` as a **single-element array containing an image URL**.
+Properties: `Name`, `Role`, `Team`, `Status` = `Active`, `date:Start Date:start` (ISO `YYYY-MM-DD`).
 
-Set the page `icon` to the same URL so the avatar appears wherever the page is referenced.
+Set **two** image fields on the page itself — both matter, and they are not the same picture:
 
-If no photo was supplied, generate one:
+| Field | Value | Why |
+| --- | --- | --- |
+| `icon` | circular avatar (`radius=50`) | The small round avatar beside the page title and in every mention |
+| `cover` | square avatar (**no** `radius`) | The **only** thing that renders on the gallery card |
 
 ```
-https://api.dicebear.com/9.x/notionists/png?seed=<firstname>&radius=50&backgroundColor=<hex>&size=256
+icon    https://api.dicebear.com/9.x/notionists/png?seed=<firstname>&radius=50&backgroundColor=<hex>&size=256
+cover   https://api.dicebear.com/9.x/notionists/png?seed=<firstname>&backgroundColor=<hex>&size=512
 ```
 
-Rotate `backgroundColor` across `b6e3f4`, `c0aede`, `ffd5dc`, `ffdfbf`, `d1d4f9` so cards don't all look alike. `radius=50` is what makes the avatar circular — keep it.
+Use the **same `seed` and `backgroundColor`** for both so the icon and card match. Rotate `backgroundColor` across `b6e3f4`, `c0aede`, `ffd5dc`, `ffdfbf`, `d1d4f9` so cards don't all look alike.
+
+Omit `radius` on the cover deliberately: a circular avatar has transparent corners, which render as dark wedges once the card is set to fill. A solid-background square fills the card cleanly.
+
+The `Photo` property is **vestigial** — populating it is harmless but it does not display anywhere. See *Images* below for why.
 
 ---
 
 ## Step 3 — Create the year subpage
 
-Create a page whose parent is the **employee page from step 2**, titled with the four-digit year (`2026`), icon `🗓️`.
+Create a page whose parent is the **employee page from step 2**, titled with the four-digit year, icon `🗓️`.
 
-If creating several years, **create them newest-first** — child pages render in creation order and the roster reads in reverse chronological order.
+> [!IMPORTANT]
+> **The year is today's year, resolved when the command runs — never a literal copied from these instructions.** Someone onboarded in 2027 gets a page titled `2027` and nothing else. Creating a `2026` page in 2027 is a bug, and it is the single easiest mistake to make here, because every example in this file was written in 2026.
+
+Create exactly **one** year page — the current one. A new hire has no history, so back-years would be empty pages that make the roster look untidy. Only create earlier years if the user explicitly asks for them, and if so create them **newest-first**: child pages render in creation order and the roster reads in reverse chronological order.
 
 ## Step 3b — Lay out the employee page body
 
@@ -129,6 +140,19 @@ In Notion-flavored Markdown the notes section is:
 ```
 
 The children must be indented with a tab or they won't nest inside the toggle.
+
+### The page may already have some of this
+
+The Employees database ships with a **database template** carrying the static half of this layout — the intro line, both dividers, the `✏️ Personal Notes` toggle, and the `## All observations` heading. Anyone who adds a person with Notion's **New** button gets those blocks already in place.
+
+So `/add` may be handed a page that is partly built. **Fetch the page before writing to it** and add only what is missing. Appending blindly produces two intro lines, two Personal Notes toggles, and two "All observations" headings.
+
+What a template can never supply, and what this command therefore always owns:
+
+- **The year subpage** — a template duplicates its contents verbatim, so a year page inside it would be frozen at whatever year the template was authored in
+- **Both filtered views** — their filters must name the person, which a template cannot know
+
+If the scaffold is present, create the year page, insert it after the intro line, and attach the view from step 4b under the existing heading.
 
 ---
 
