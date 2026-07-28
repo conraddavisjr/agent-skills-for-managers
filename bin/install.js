@@ -6,6 +6,12 @@ const path = require('path');
 const os = require('os');
 
 const REPO_ROOT = path.resolve(__dirname, '..');
+const COMMANDS_DIR = path.join(REPO_ROOT, 'commands');
+
+// Each command is a directory under commands/ holding a command.md, plus any
+// supporting files it inlines at install time.
+const ENTRY = 'command.md';
+const INCLUDE_RE = /^[ \t]*<!--[ \t]*include:[ \t]*([^\s>]+?)[ \t]*-->[ \t]*$/gm;
 
 // Where each agent expects command/skill markdown to live, relative to a project root.
 const TARGETS = {
@@ -24,17 +30,42 @@ const yellow = (s) => c('33', s);
 const red = (s) => c('31', s);
 
 function listSkills() {
+  if (!fs.existsSync(COMMANDS_DIR)) {
+    console.error(red(`\nNo commands/ directory at ${COMMANDS_DIR}.\n`));
+    process.exit(1);
+  }
   return fs
-    .readdirSync(REPO_ROOT)
-    .filter((f) => f.endsWith('.md') && f.toLowerCase() !== 'readme.md')
+    .readdirSync(COMMANDS_DIR, { withFileTypes: true })
+    .filter((d) => d.isDirectory() && fs.existsSync(path.join(COMMANDS_DIR, d.name, ENTRY)))
+    .map((d) => d.name)
     .sort()
-    .map((file) => {
-      const body = fs.readFileSync(path.join(REPO_ROOT, file), 'utf8');
-      const name = path.basename(file, '.md');
-      // A skill may bind itself to a shorter slash command than its filename.
+    .map((name) => {
+      const dir = path.join(COMMANDS_DIR, name);
+      const body = fs.readFileSync(path.join(dir, ENTRY), 'utf8');
+      // A command may bind itself to a shorter slash command than its directory.
       const command = parseField(body, 'command') || name;
-      return { name, command, file, description: parseField(body, 'description') };
+      return { name, command, dir, description: parseField(body, 'description') };
     });
+}
+
+// Resolve `<!-- include: file.md -->` against the command's own directory, so a
+// long command can be authored in pieces but still install as one self-contained
+// file. Includes are not recursive: one level keeps the failure modes obvious.
+function render(skill) {
+  const source = fs.readFileSync(path.join(skill.dir, ENTRY), 'utf8');
+  return source.replace(INCLUDE_RE, (_match, ref) => {
+    const target = path.resolve(skill.dir, ref);
+    // Keep includes inside the command's own directory.
+    if (!target.startsWith(skill.dir + path.sep)) {
+      throw new Error(`${skill.name}: include "${ref}" escapes its command directory`);
+    }
+    if (!fs.existsSync(target)) {
+      throw new Error(`${skill.name}: include "${ref}" not found`);
+    }
+    // Included fragments are body-only; drop any frontmatter they carry so the
+    // rendered file keeps exactly one frontmatter block, at the top.
+    return fs.readFileSync(target, 'utf8').replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '').trim();
+  });
 }
 
 // Pull a scalar out of the YAML frontmatter without taking a YAML dependency.
@@ -143,11 +174,12 @@ function main() {
   }
 
   const dest = resolveDestination(opts);
-  fs.mkdirSync(dest, { recursive: true });
 
-  let written = 0;
   let skipped = 0;
+  const pending = [];
 
+  // Render every command before writing any of them, so a broken include fails
+  // the whole run instead of leaving a half-installed directory behind.
   for (const skill of selected) {
     // The installed filename is what becomes the slash command, so honour `command:`.
     const to = path.join(dest, `${skill.command}.md`);
@@ -156,10 +188,18 @@ function main() {
       skipped++;
       continue;
     }
-    fs.copyFileSync(path.join(REPO_ROOT, skill.file), to);
-    console.log(`  ${green('added')} ${label(skill)}`);
-    written++;
+    // One flat .md per command: everything under .claude/commands/ becomes a
+    // slash command, so supporting files are inlined rather than copied.
+    pending.push({ skill, to, content: render(skill) });
   }
+
+  if (pending.length) fs.mkdirSync(dest, { recursive: true });
+
+  for (const { skill, to, content } of pending) {
+    fs.writeFileSync(to, content);
+    console.log(`  ${green('added')} ${label(skill)}`);
+  }
+  const written = pending.length;
 
   // Prefer a relative path, but fall back to absolute when it would climb out of cwd.
   const rel = path.relative(process.cwd(), dest);
