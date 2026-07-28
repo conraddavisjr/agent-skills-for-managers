@@ -97,16 +97,52 @@ Set **two** image fields on the page itself — both matter, and they are not th
 | `icon` | circular avatar (`radius=50`) | The small round avatar beside the page title and in every mention |
 | `cover` | square avatar (**no** `radius`) | The **only** thing that renders on the gallery card |
 
+The avatars use DiceBear's **`avataaars`** style. Build one URL, then request it twice — once
+with `radius=50` for the icon, once without for the cover:
+
 ```
-icon    https://api.dicebear.com/9.x/notionists/png?seed=<firstname>&radius=50&backgroundColor=<hex>&size=256
-cover   https://api.dicebear.com/9.x/notionists/png?seed=<firstname>&backgroundColor=<hex>&size=512
+https://api.dicebear.com/9.x/avataaars/png
+  ?seed=<unique>
+  &skinColor=<tone>
+  &top=<hair>
+  &hairColor=2c1b18
+  &facialHairProbability=<0|100>
+  &eyes=default&eyebrows=default&mouth=smile
+  &clothing=blazerAndShirt
+  &backgroundColor=<hex>
+  &size=256   (icon, add &radius=50)   |   &size=512   (cover, no radius)
 ```
 
-Use the **same `seed` and `backgroundColor`** for both so the icon and card match. Rotate `backgroundColor` across `b6e3f4`, `c0aede`, `ffd5dc`, `ffdfbf`, `d1d4f9` so cards don't all look alike.
+Everything except `radius` and `size` must be **identical** between the two, or the icon and
+the card show different people.
 
-Omit `radius` on the cover deliberately: a circular avatar has transparent corners, which render as dark wedges once the card is set to fill. A solid-background square fills the card cleanly.
+Rotate `backgroundColor` across `b6e3f4`, `c0aede`, `ffd5dc`, `ffdfbf`, `d1d4f9` so cards
+don't all look alike.
 
-The `Photo` property is **vestigial** — populating it is harmless but it does not display anywhere. See *Images* below for why.
+Omit `radius` on the cover deliberately: a circular avatar has transparent corners that render
+as dark wedges once the card fills. A solid-background square fills cleanly.
+
+### Represent people properly
+
+If the user supplied no photo you are inventing someone's likeness, so do it thoughtfully.
+
+- **Ask, or infer from the name, rather than defaulting.** A single default skin tone across
+  every hire is its own statement. If you have nothing to go on, vary it.
+- `skinColor` accepts `614335`, `ae5d29`, `d08b5b`, `edb98a`, `f8d25c`, `fd9841`, `ffdbb4`.
+- For textured hair use `top=frizzle`, `dreads01`, `dreads02`, `shortCurly`, or `curly`.
+  Pair with `hairColor=2c1b18`.
+- `facialHairProbability=100` plus `facialHair=beardLight` reads male; `0` omits it.
+- Glance at the existing roster first and avoid making every new hire look the same.
+
+> [!NOTE]
+> **Do not switch back to the `notionists` style.** It was used originally and abandoned
+> deliberately: it has **no `skinColor` parameter at all** — the figures are pure line art with
+> no skin fill — and none of its 64 hair variants is an afro or braids. It cannot represent a
+> Black team member. `avataaars` was chosen because it supports both skin tone and textured
+> hair, at the cost of a flatter, less hand-drawn look.
+
+The `Photo` property is **vestigial** — populating it is harmless but it does not display
+anywhere. See *Images* below for why.
 
 ---
 
