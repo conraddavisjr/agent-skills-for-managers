@@ -1,9 +1,9 @@
 {
-  "name": "@conraddavisjr/skills",
+  "name": "@conraddavisjr/agent-skills",
   "version": "0.1.0",
   "description": "Reusable AI agent commands by Conrad Davis Jr. Install into any project with npx.",
   "bin": {
-    "skills": "bin/install.js"
+    "agent-skills": "bin/install.js"
   },
   "files": [
     "bin",
@@ -22,9 +22,9 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/conraddavisjr/skills.git"
+    "url": "git+https://github.com/conraddavisjr/agent-skills.git"
   },
-  "homepage": "https://github.com/conraddavisjr/skills#readme",
+  "homepage": "https://github.com/conraddavisjr/agent-skills#readme",
   "engines": {
     "node": ">=16"
   }
