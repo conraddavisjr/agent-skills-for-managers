@@ -1,7 +1,7 @@
-# agent-skills-for-managers
+# Agent skills for managers
 
-**Agent skills for engineering managers.** Capture what you notice about your team, route
-PR reviews to the people with room to do them, and keep the record straight — from wherever
+Capture what you notice about your team, route
+PR reviews to the people with room to do them, and keep the record straight, from wherever
 you already work.
 
 ![Two loops a manager runs: observe, 1:1, growth — and PR opened, reviewed, merged](./assets/hero.svg)
