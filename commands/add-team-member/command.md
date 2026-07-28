@@ -1,6 +1,6 @@
 ---
 command: add
-description: Onboard a new direct report into a Feedback OS Notion workspace — creates their profile card with avatar, their year page, and the filtered views that surface their observations. Use when the manager says "/add <name>", "add <name> to my team", "I have a new report starting", or "set up a page for our new hire".
+description: Onboard a new direct report into your Notion team-observation tracker — creates their profile card with avatar, their year page, and the filtered views that surface their observations. Use when the manager says "/add <name>", "add <name> to my team", "I have a new report starting", or "set up a page for our new hire".
 argument-hint: <full name> [role] [team] [start date] [notion page url]
 allowed-tools:
   - mcp__claude_ai_Notion__notion-search
