@@ -1,6 +1,6 @@
 # skills
 
-Reusable commands for AI coding agents — Claude Code, Cursor, Windsurf, and anything else that reads markdown instructions.
+Reusable commands for AI coding agents: Claude Code, Cursor, Windsurf, and anything else that reads markdown instructions.
 
 Each command is a single markdown file: YAML frontmatter declaring what it does and which tools it may use, followed by step-by-step instructions the agent follows.
 
