@@ -1,7 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 480" width="1200" height="480"
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 250" width="1200" height="250"
      role="img" aria-labelledby="title desc" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Helvetica, Arial, sans-serif">
-  <title id="title">Two loops a manager runs</title>
-  <desc id="desc">A feedback loop — observe, one-on-one, growth — running above a review loop — pull request opened, reviewed, merged. Both circle back to their starting point.</desc>
+  <title id="title">The feedback loop a manager runs</title>
+  <desc id="desc">A feedback loop: observe, then a one-on-one, then growth, circling back to observe again.</desc>
 
   <style>
     /* ══════════════════════════════════════════════════════════════
@@ -149,7 +149,16 @@
     <text class="node-sub" x="843" y="130">talk it through</text>
   </g>
 
-  <!-- ── REVIEW LOOP ───────────────────────────────────────────── -->
+  <!-- ══════════════════════════════════════════════════════════════
+       REVIEW LOOP — HIDDEN, NOT DELETED
+
+       Temporarily out of the picture while the second loop is rethought.
+       To bring it back:
+         1. delete this comment's opening and closing markers
+         2. restore the `── REVIEW LOOP ──` label below to a comment of its own
+         3. on the svg element, set viewBox to "0 0 1200 480" and height to 480
+       The .code style rules are still live and need no changes.
+   ── REVIEW LOOP ───────────────────────────────────────────── 
   <g class="code">
     <text class="lane-title" x="60" y="280">REVIEW LOOP</text>
     <text class="caption"    x="60" y="303">the same shape, on a shorter clock</text>
@@ -180,5 +189,7 @@
     <text class="node-sub" x="357" y="370">assign it</text>
     <text class="node-sub" x="843" y="370">ship it</text>
   </g>
+  -->
+
   <!-- ══════════════════════ END EDIT LABELS ═══════════════════════ -->
 </svg>
