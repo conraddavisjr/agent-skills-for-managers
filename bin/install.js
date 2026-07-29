@@ -7,6 +7,7 @@ const os = require('os');
 
 const REPO_ROOT = path.resolve(__dirname, '..');
 const COMMANDS_DIR = path.join(REPO_ROOT, 'commands');
+const SOURCE_REPO = 'conraddavisjr/agent-skills-for-managers';
 
 // How people actually invoke this. Kept in one place so the help text can't drift
 // from the repo name the way it did across the earlier renames.
@@ -33,6 +34,45 @@ const green = (s) => c('32', s);
 const yellow = (s) => c('33', s);
 const red = (s) => c('31', s);
 const cyan = (s) => c('36', s);
+
+// A one-line note of where an installed file came from and when. An installed
+// command is a snapshot: the repo moves on and the copy on disk never does, so
+// when a command later refuses to run, this is what tells you whether the fix is
+// already upstream. Written as a comment rather than frontmatter so it travels
+// with the file without becoming a field an agent might try to validate against.
+function provenance() {
+  const stamped = new Date().toISOString().slice(0, 10);
+  let ref = '';
+  // npm strips .git when it packs a git dependency, so a sha is only available
+  // when running from a real checkout. Fall back to the declared version.
+  if (fs.existsSync(path.join(REPO_ROOT, '.git'))) {
+    try {
+      ref = require('child_process')
+        .execSync('git rev-parse --short HEAD', { cwd: REPO_ROOT, stdio: ['ignore', 'pipe', 'ignore'] })
+        .toString()
+        .trim();
+    } catch {
+      // Not fatal: a stamp without a ref still dates the copy.
+    }
+  }
+  if (!ref) {
+    try {
+      ref = `v${require(path.join(REPO_ROOT, 'package.json')).version}`;
+    } catch {
+      ref = 'unknown';
+    }
+  }
+  return { stamped, ref };
+}
+
+// Name the actual command in the stamp rather than a placeholder, so the line can
+// be copied straight out of the installed file without editing.
+function stampFor(skill, meta) {
+  return (
+    `<!-- Installed ${meta.stamped} from ${SOURCE_REPO}@${meta.ref}\n` +
+    `     Update with: ${INVOCATION} ${skill.command} --force -->\n\n`
+  );
+}
 
 function listSkills() {
   if (!fs.existsSync(COMMANDS_DIR)) {
@@ -64,9 +104,9 @@ function listSkills() {
 // Resolve `<!-- include: file.md -->` against the command's own directory, so a
 // long command can be authored in pieces but still install as one self-contained
 // file. Includes are not recursive: one level keeps the failure modes obvious.
-function render(skill) {
+function render(skill, stamp) {
   const source = fs.readFileSync(path.join(skill.dir, ENTRY), 'utf8');
-  return source.replace(INCLUDE_RE, (_match, ref) => {
+  const body = source.replace(INCLUDE_RE, (_match, ref) => {
     const target = path.resolve(skill.dir, ref);
     // Keep includes inside the command's own directory.
     if (!target.startsWith(skill.dir + path.sep)) {
@@ -81,6 +121,12 @@ function render(skill) {
     }
     return readFragment(target);
   });
+
+  // The stamp goes after the frontmatter, never before it: agents require the
+  // `---` block to be the very first thing in the file, and a comment above it
+  // stops the frontmatter being recognised at all.
+  const fm = body.match(/^---\r?\n[\s\S]*?\r?\n---\r?\n/);
+  return fm ? body.slice(0, fm[0].length) + '\n' + stamp + body.slice(fm[0].length).replace(/^\n+/, '') : stamp + body;
 }
 
 // Included fragments are body-only; drop any frontmatter they carry so the
@@ -200,6 +246,30 @@ ${dim('Existing files are never overwritten unless you pass --force.')}
 `);
 }
 
+// A command may pin a resolved target into its own file — `/add` stores the Notion
+// page it writes into. That pin is the user's, not ours, and reinstalling must not
+// throw it away: the documented way to get a fix is `--force`, which overwrites.
+// So carry any non-empty pin from the copy on disk into the fresh render.
+const PIN_RE = /<!--\s*TRACKER_TARGET:\s*(\S*)\s*-->/;
+
+function carryPin(existingPath, content) {
+  if (!fs.existsSync(existingPath)) return content;
+  let previous;
+  try {
+    previous = fs.readFileSync(existingPath, 'utf8');
+  } catch {
+    return content; // Unreadable is not a reason to fail the install.
+  }
+  const was = previous.match(PIN_RE);
+  // Nothing to carry: no pin, or the user never resolved one.
+  if (!was || !was[1]) return content;
+  // Nothing to carry it into — the new version dropped the pin entirely.
+  if (!PIN_RE.test(content)) return content;
+  // Rewrite the whole comment rather than splicing into it, so the spacing is
+  // canonical whether the template shipped it empty or already filled.
+  return content.replace(PIN_RE, `<!-- TRACKER_TARGET: ${was[1]} -->`);
+}
+
 function resolveDestination(opts) {
   if (opts.dir) return path.resolve(opts.dir);
   const rel = TARGETS[opts.target];
@@ -243,6 +313,7 @@ function main() {
 
   let skipped = 0;
   const pending = [];
+  const stamp = provenance();
 
   // Render every command before writing any of them, so a broken include fails
   // the whole run instead of leaving a half-installed directory behind.
@@ -256,14 +327,16 @@ function main() {
     }
     // One flat .md per command: everything under .claude/commands/ becomes a
     // slash command, so supporting files are inlined rather than copied.
-    pending.push({ skill, to, content: render(skill) });
+    const fresh = render(skill, stampFor(skill, stamp));
+    const content = carryPin(to, fresh);
+    pending.push({ skill, to, content, keptPin: content !== fresh });
   }
 
   if (pending.length) fs.mkdirSync(dest, { recursive: true });
 
-  for (const { skill, to, content } of pending) {
+  for (const { skill, to, content, keptPin } of pending) {
     fs.writeFileSync(to, content);
-    console.log(`  ${green('added')} ${label(skill)}`);
+    console.log(`  ${green('added')} ${label(skill)}${keptPin ? ` ${dim('(kept your pinned target)')}` : ''}`);
   }
   const written = pending.length;
 

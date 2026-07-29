@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "Agent skills for engineering managers: team feedback records and PR review routing. Install into any project with npx.",
   "bin": {
+    "agent-skills-for-managers": "bin/install.js",
     "agent-skills": "bin/install.js"
   },
   "files": [

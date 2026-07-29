@@ -13,6 +13,11 @@ reconstructing a review from whatever happened most recently.
 Or just `/add` and answer the questions. Everything after the command is parsed for a name,
 role, team, start date, and optionally a Notion URL. Only the name is required.
 
+The name is the only thing you type — role, team, start date and avatar arrive as a keyboard
+picker you arrow through, with the options read off your existing roster so the roles and teams
+you already use are one keystroke away. Anything not on the list you can still type, and any
+field you skip falls back to its default.
+
 ## What it creates
 
 Onboarding someone by hand means creating four linked things in the right order, and Notion
@@ -32,20 +37,39 @@ Rows belonging to *other people* is a failure, and it says so.
 ## Finding your tracker
 
 The command never hardcodes database IDs — it resolves them on every run, so it works in any
-workspace. It tries, in order:
+workspace and survives any rename.
+
+The important part is the split: **a search only ever produces candidates. A marker is what
+confirms one.** Your tracker carries `feedback-os/v1` in the description of the Observations
+title property — invisible in normal use, but it survives duplication and the command reads
+it on every run.
+
+**Nothing is written to a page that isn't confirmed.** A structural check alone isn't enough:
+plenty of workspaces contain some people-table-plus-notes-table that would pass one, and
+scattering employee pages through an unrelated project isn't something you can easily undo.
+
+Where it looks, in order:
 
 1. A Notion URL you passed as an argument
-2. The pinned `TRACKER_TARGET` URL near the top of `command.md`
-3. A search by name, several phrasings, no exact match required
-4. A search by **structure** — a tracker is identified by having an Observations database
-   with an `Employee` relation to an Employees database. No rename touches that shape.
-5. Asking you
+2. The pinned `TRACKER_TARGET` near the top of `command.md`
+3. A search by **structure** — an Observations-shaped database, walked up to its home page
+4. A search by name, last and least, because those queries return a lot of noise
 
-If nothing validates, or more than one candidate does, it stops and asks for a link rather
-than guessing or creating a second tracker. Renaming your page is therefore fine.
+Then it verifies every candidate and discards the unmarked. One survivor and it proceeds.
+Two or more — a sandbox copy alongside a live one, say — and it lists them and asks, because
+both are real and only you know which you meant.
 
-The pinned URL ships pointing at the author's tracker, which you can't read — your first run
-quietly skips it and searches your own workspace.
+**If you have no tracker**, it won't invent one. It'll point you at `/init` or the published
+template and stop.
+
+**If you have one from before markers existed**, it says so and walks you through adding the
+marker — a one-time UI step, because Notion exposes no API for writing a property
+description. Mark it once and every later run, and every copy duplicated from it, resolves
+without asking.
+
+The pin ships **empty**. Your first run resolves your tracker and offers to write the URL in,
+so every later run is a single fetch. Reinstalling keeps it — updating with `--force` won't
+cost you the setting.
 
 ## What you need
 
@@ -54,7 +78,7 @@ quietly skips it and searches your own workspace.
   `Employee` relation, `Employee Key` text) and an Employees database (`Name`, `Role`,
   `Team`, `Status`)
 
-> **Get the template:** <!-- NOTION_TEMPLATE_URL --> *(link coming — still being finalized)*
+> **Get the template:** <!-- NOTION_TEMPLATE_URL --> https://woolly-navy-883.notion.site/team-obserations-ai-tool-by-conrad-davis-jr
 
 ## Why the `Employee Key` column exists
 
