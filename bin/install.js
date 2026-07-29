@@ -8,6 +8,10 @@ const os = require('os');
 const REPO_ROOT = path.resolve(__dirname, '..');
 const COMMANDS_DIR = path.join(REPO_ROOT, 'commands');
 
+// How people actually invoke this. Kept in one place so the help text can't drift
+// from the repo name the way it did across the earlier renames.
+const INVOCATION = 'npx github:conraddavisjr/agent-skills-for-managers';
+
 // Each command is a directory under commands/ holding a command.md, plus any
 // supporting files it inlines at install time.
 const ENTRY = 'command.md';
@@ -28,6 +32,7 @@ const dim = (s) => c('2', s);
 const green = (s) => c('32', s);
 const yellow = (s) => c('33', s);
 const red = (s) => c('31', s);
+const cyan = (s) => c('36', s);
 
 function listSkills() {
   if (!fs.existsSync(COMMANDS_DIR)) {
@@ -44,7 +49,15 @@ function listSkills() {
       const body = fs.readFileSync(path.join(dir, ENTRY), 'utf8');
       // A command may bind itself to a shorter slash command than its directory.
       const command = parseField(body, 'command') || name;
-      return { name, command, dir, description: parseField(body, 'description') };
+      return {
+        name,
+        command,
+        dir,
+        description: parseField(body, 'description'),
+        // Optional: one concrete line showing how you'd invoke the command once
+        // installed. Shown in listings so `--list` teaches usage, not just names.
+        example: parseField(body, 'example'),
+      };
     });
 }
 
@@ -107,12 +120,25 @@ function truncate(s, n) {
   return s.length > n ? s.slice(0, n - 1).trimEnd() + '…' : s;
 }
 
+// The one place a command is rendered for the terminal. `--list` and the default
+// help both go through this, so they can never describe the same command differently.
+function describe(skills) {
+  return skills
+    .map((s) => {
+      const lines = [`  ${label(s)}`, `      ${dim(truncate(s.description, 96))}`];
+      if (s.example) lines.push(`      ${dim('e.g.')} ${cyan(s.example)}`);
+      return lines.join('\n');
+    })
+    .join('\n\n');
+}
+
 function parseArgs(argv) {
-  const opts = { target: 'claude', dir: null, global: false, force: false, names: [] };
+  const opts = { target: 'claude', dir: null, global: false, force: false, all: false, names: [] };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--list' || a === '-l') opts.list = true;
     else if (a === '--help' || a === '-h') opts.help = true;
+    else if (a === '--all' || a === '-a') opts.all = true;
     else if (a === '--global' || a === '-g') opts.global = true;
     else if (a === '--force' || a === '-f') opts.force = true;
     else if (a === '--dir') opts.dir = argv[++i];
@@ -126,14 +152,22 @@ function parseArgs(argv) {
 }
 
 function usage(skills) {
+  const first = skills[0];
   console.log(`
 ${bold('Conrad Davis Jr. — AI agent commands')}
 
-  ${bold('npx github:conraddavisjr/agent-skills')}                 install everything
-  ${bold('npx github:conraddavisjr/agent-skills <name>')}          install one command
-  ${bold('npx github:conraddavisjr/agent-skills --list')}          show what's available
+Slash commands for engineering managers, installed as plain markdown into whichever
+agent you already use.
+
+${bold('Usage')}
+  ${dim(`${INVOCATION} [name…] [options]`)}
+
+  ${green('<no arguments>')}   show this help
+  ${green('--all')}            install every command
+  ${green('<name>')}           install one command, by folder name or slash command
 
 ${bold('Options')}
+  -a, --all              install every available command
   -t, --target <agent>   claude (default), cursor, windsurf, generic
       --dir <path>       install to an explicit directory instead
   -g, --global           install to your home directory, not this project
@@ -141,7 +175,28 @@ ${bold('Options')}
   -l, --list             list available commands and exit
 
 ${bold('Available')}
-${skills.map((s) => `  ${label(s)}\n      ${dim(truncate(s.description, 96))}`).join('\n')}
+${describe(skills)}
+
+${bold('Installing')}
+  ${dim(`${INVOCATION} --all`)}
+      every command, into ${bold('.claude/commands/')} in this project
+  ${dim(`${INVOCATION} ${first ? first.command : '<name>'}`)}
+      just one
+  ${dim(`${INVOCATION} --all --global`)}
+      into your home directory, so every project sees them
+  ${dim(`${INVOCATION} --all --target cursor`)}
+      for Cursor instead of Claude Code${
+        first
+          ? `
+
+${bold('Then, in your agent')}
+  Restart it, and the commands appear as slash commands:
+
+      ${cyan(first.example || `/${first.command}`)}`
+          : ''
+      }
+
+${dim('Existing files are never overwritten unless you pass --force.')}
 `);
 }
 
@@ -161,9 +216,12 @@ function main() {
 
   if (opts.help) return usage(skills);
   if (opts.list) {
-    console.log('\n' + skills.map((s) => `  ${label(s)}\n      ${dim(truncate(s.description, 96))}`).join('\n') + '\n');
+    console.log('\n' + describe(skills) + '\n');
     return;
   }
+  // Installing is now something you ask for explicitly: a bare invocation shows
+  // what's on offer rather than writing files into whatever directory you're in.
+  if (!opts.all && !opts.names.length) return usage(skills);
 
   let selected = skills;
   if (opts.names.length) {

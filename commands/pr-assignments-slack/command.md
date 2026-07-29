@@ -1,5 +1,6 @@
 ---
 description: Compose and post a PR review focus message to your team's Slack channel for the current sprint's Peer Review tickets. Cross-references Jira with open GitHub PRs, applies engineer profiles and availability checks, and produces the formatted Slack message.
+example: "/pr-assignments-slack"
 allowed-tools:
   - Bash(gh pr list *)
   - mcp__claude_ai_Atlassian__getAccessibleAtlassianResources

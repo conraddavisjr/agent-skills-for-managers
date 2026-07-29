@@ -38,8 +38,7 @@ workspace. It tries, in order:
 2. The pinned `TRACKER_TARGET` URL near the top of `command.md`
 3. A search by name, several phrasings, no exact match required
 4. A search by **structure** — a tracker is identified by having an Observations database
-   with an `Employee Name` text column related to an Employees database. No rename touches
-   that shape.
+   with an `Employee` relation to an Employees database. No rename touches that shape.
 5. Asking you
 
 If nothing validates, or more than one candidate does, it stops and asks for a link rather
@@ -52,22 +51,33 @@ quietly skips it and searches your own workspace.
 
 - The [Notion MCP connector](https://www.notion.so/help/notion-mcp)
 - A copy of the tracker template, with an Observations database (`Observation`, `Date`,
-  `Employee` relation, `Employee Name` text) and an Employees database (`Name`, `Role`,
+  `Employee` relation, `Employee Key` text) and an Employees database (`Name`, `Role`,
   `Team`, `Status`)
 
 > **Get the template:** <!-- NOTION_TEMPLATE_URL --> *(link coming — still being finalized)*
 
-## Why the `Employee Name` text column exists
+## Why the `Employee Key` column exists
 
 This is the non-obvious thing the command carries so an agent doesn't rediscover it the hard
 way:
 
-> **Notion's view API silently discards filters on relation properties.** `FILTER "Employee" =
+> **Notion's view API silently discards the value on a relation filter.** `FILTER "Employee" =
 > "Nia Patel"` is accepted and then dropped. No error — you just get a view showing everyone.
+> Rollups and formulas fail identically. Only plain text, select, date, number, and checkbox
+> filters can carry a value.
 
-So the template carries an `Employee Name` **text** column alongside the `Employee` relation.
-The relation drives rollups; the text drives every view filter the API can actually write. Set
-both on every observation. If they disagree, views silently show the wrong rows.
+There is a second, less obvious half. **Notion pre-fills a text filter's value into rows created
+in that view, and does not do the same for a relation filter.** So a year page filtered by
+`Employee Key` stamps each new observation with the right person automatically — something a
+relation filter cannot do even when you set it by hand in the UI.
+
+So `Employee Key` is not a workaround for the relation. It **routes** observations to the right
+pages and is the only field Notion fills in for you. The `Employee` relation does the other
+half: it **feeds the rollups**. The command's reconcile step keeps them in agreement.
+
+The key holds the employee's **page ID**, never their display name — an earlier name-based
+version of this column silently detached people's observations the first time anyone was
+renamed.
 
 `command.md` also records which display settings the API *cannot* set — card size, card
 preview, property visibility, "open pages in" — so the command reports them for you to set by
