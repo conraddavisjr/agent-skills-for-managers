@@ -2,12 +2,14 @@
 command: add
 description: Onboard a new direct report into your Notion team-observation tracker — creates their profile card with avatar, their year page, and the filtered views that surface their observations. Use when the manager says "/add <name>", "add <name> to my team", "I have a new report starting", or "set up a page for our new hire".
 argument-hint: <full name> [role] [team] [start date] [notion page url]
+example: "/add Priya Raman, senior designer, Design, starting Monday"
 allowed-tools:
   - mcp__claude_ai_Notion__notion-search
   - mcp__claude_ai_Notion__notion-fetch
   - mcp__claude_ai_Notion__notion-create-pages
   - mcp__claude_ai_Notion__notion-create-view
   - mcp__claude_ai_Notion__notion-query-data-sources
+  - mcp__claude_ai_Notion__notion-update-page
   - Edit
 ---
 
@@ -40,19 +42,21 @@ The pinned URL points at the author's tracker. If you installed this from the re
 1. **A Notion URL or bare page ID in `$ARGUMENTS`.** An explicit link always wins.
 2. **The pinned `TRACKER_TARGET` URL above**, if one is set. If fetching it fails — deleted, moved, or a workspace you have no access to — say so in one line and continue to step 3. A stale pin is not a reason to stop.
 3. **Search by name.** Call `notion-search` for `Feedback OS Team Observation Tracker`, then — if that returns nothing useful — `Feedback OS`, then `team observation tracker`, then `observations manager feedback`. The page name is expected to drift; do not require an exact match.
-4. **Search by structure.** Query for the contents rather than the title: `notion-search` for `Employee Name observation KPI` or fetch any `Observations` database that surfaces and walk up its `<ancestor-path>` to the home page. A renamed home page still contains databases whose property names are distinctive.
+4. **Search by structure.** Query for the contents rather than the title: `notion-search` for `observation KPI exemplary employee` or fetch any `Observations` database that surfaces and walk up its `<ancestor-path>` to the home page. A renamed home page still contains databases whose property names are distinctive.
 5. **Ask.** If nothing validates, or two or more candidates do, stop and ask the user for a link to their Feedback OS page. Show what you found and why it was rejected or ambiguous. **Never guess, and never create a new tracker** — a wrong target silently scatters pages across the wrong workspace.
 
 ### Validate the candidate before writing
 
 A candidate is the right target only if `notion-fetch` on it reveals **both**:
 
-- an **Observations** database whose schema has an `Observation` title, a `Date` date, an `Employee` relation, and an `Employee Name` **text** property
+- an **Observations** database whose schema has an `Observation` title, a `Date` date, an `Employee` relation, and an `Employee Key` **text** property
 - an **Employees** database — the one the `Employee` relation points at — with a `Name` title and `Status`, `Role`, `Team` properties
 
 Match on this shape, not on names. Any of these may have been renamed; the reference template ships them as `Observations` and `Employees`, and the Employees database may sit inline on the home page or on a `Team` subpage. Resolve Employees by following the `dataSourceUrl` on the Observations `Employee` relation — that link survives every rename.
 
-If the shape matches but a property is missing, say which one and stop. In particular: **if there is no `Employee Name` text property**, the views must filter on the `Employee` relation, which the API cannot write — see *Filtering* below. Report that rather than creating views that silently show everyone.
+If the shape matches but a property is missing, say which one and stop. In particular: **if there is no `Employee Key` text property**, there is nothing the API can filter on — see *Filtering* below. Offer to add it (`ADD COLUMN "Employee Key" RICH_TEXT`, then backfill it from each observation's `Employee` relation) rather than creating views that silently show everyone.
+
+Older copies of this template carry an `Employee Name` text property instead, holding the person's **display name**. That design is retired: renaming anyone silently detaches their rows and can serve one person's observations on another person's page. If you find it, say so and offer to migrate — the replacement stores the employee's page ID, which never changes.
 
 Carry four values out of this step:
 
@@ -97,16 +101,52 @@ Set **two** image fields on the page itself — both matter, and they are not th
 | `icon` | circular avatar (`radius=50`) | The small round avatar beside the page title and in every mention |
 | `cover` | square avatar (**no** `radius`) | The **only** thing that renders on the gallery card |
 
+The avatars use DiceBear's **`avataaars`** style. Build one URL, then request it twice — once
+with `radius=50` for the icon, once without for the cover:
+
 ```
-icon    https://api.dicebear.com/9.x/notionists/png?seed=<firstname>&radius=50&backgroundColor=<hex>&size=256
-cover   https://api.dicebear.com/9.x/notionists/png?seed=<firstname>&backgroundColor=<hex>&size=512
+https://api.dicebear.com/9.x/avataaars/png
+  ?seed=<unique>
+  &skinColor=<tone>
+  &top=<hair>
+  &hairColor=2c1b18
+  &facialHairProbability=<0|100>
+  &eyes=default&eyebrows=default&mouth=smile
+  &clothing=blazerAndShirt
+  &backgroundColor=<hex>
+  &size=256   (icon, add &radius=50)   |   &size=512   (cover, no radius)
 ```
 
-Use the **same `seed` and `backgroundColor`** for both so the icon and card match. Rotate `backgroundColor` across `b6e3f4`, `c0aede`, `ffd5dc`, `ffdfbf`, `d1d4f9` so cards don't all look alike.
+Everything except `radius` and `size` must be **identical** between the two, or the icon and
+the card show different people.
 
-Omit `radius` on the cover deliberately: a circular avatar has transparent corners, which render as dark wedges once the card is set to fill. A solid-background square fills the card cleanly.
+Rotate `backgroundColor` across `b6e3f4`, `c0aede`, `ffd5dc`, `ffdfbf`, `d1d4f9` so cards
+don't all look alike.
 
-The `Photo` property is **vestigial** — populating it is harmless but it does not display anywhere. See *Images* below for why.
+Omit `radius` on the cover deliberately: a circular avatar has transparent corners that render
+as dark wedges once the card fills. A solid-background square fills cleanly.
+
+### Represent people properly
+
+If the user supplied no photo you are inventing someone's likeness, so do it thoughtfully.
+
+- **Ask, or infer from the name, rather than defaulting.** A single default skin tone across
+  every hire is its own statement. If you have nothing to go on, vary it.
+- `skinColor` accepts `614335`, `ae5d29`, `d08b5b`, `edb98a`, `f8d25c`, `fd9841`, `ffdbb4`.
+- For textured hair use `top=frizzle`, `dreads01`, `dreads02`, `shortCurly`, or `curly`.
+  Pair with `hairColor=2c1b18`.
+- `facialHairProbability=100` plus `facialHair=beardLight` reads male; `0` omits it.
+- Glance at the existing roster first and avoid making every new hire look the same.
+
+> [!NOTE]
+> **Do not switch back to the `notionists` style.** It was used originally and abandoned
+> deliberately: it has **no `skinColor` parameter at all** — the figures are pure line art with
+> no skin fill — and none of its 64 hair variants is an afro or braids. It cannot represent a
+> Black team member. `avataaars` was chosen because it supports both skin tone and textured
+> hair, at the cost of a flatter, less hand-drawn look.
+
+The `Photo` property is **vestigial** — populating it is harmless but it does not display
+anywhere. See *Images* below for why.
 
 ---
 
@@ -165,12 +205,14 @@ Create a view with `parent_page_id` = the year page and `data_source_id` = the O
 - Configure:
 
 ```
-FILTER "Employee Name" = "<Full name>"
+FILTER "Employee Key" = "<employee page id>"
 FILTER "Date" >= "<year>-01-01"
 FILTER "Date" <= "<year>-12-31"
 SORT BY "Date" DESC
 SHOW "Observation", "Type", "KPI", "Date", "Status"
 ```
+
+`<employee page id>` is the **dashed UUID of the page you created in step 2**, not the person's name. Filtering on a key rather than on `Employee` looks backwards; *Filtering* below explains why it is the only thing that works.
 
 ---
 
@@ -183,7 +225,7 @@ Create a view with `parent_page_id` = the **employee page**, `data_source_id` = 
 - Configure:
 
 ```
-FILTER "Employee Name" = "<Full name>"
+FILTER "Employee Key" = "<employee page id>"
 SORT BY "Date" DESC
 SHOW "Observation", "Date", "Type", "Status", "KPI"
 ```
@@ -192,6 +234,32 @@ This is what a manager lands on when they click the person's card on the home pa
 
 > [!NOTE]
 > **Do not create a per-employee tab on the Observations database.** This was tried and rejected: Notion truncates the view tab bar to "2 more…" at only three views, so it does not scale past a few reports. Per-employee browsing happens through the card grid on the home page, not through tabs.
+
+---
+
+## Step 5 — Reconcile observations
+
+Run this at the end of every invocation, even when onboarding produced no observations. It is idempotent and does nothing when the data is already consistent, so there is no cost to running it too often. It exists because the manager's fastest logging path — **New** on a year page — leaves the `Employee` relation empty, and the rollups drift quietly until something repairs them.
+
+It is unambiguous because `Employee Key` holds exactly the page ID that `Employee` points at, so either field can rebuild the other. No name matching is involved.
+
+Find the drift:
+
+```sql
+SELECT url, "Observation", "Employee", "Employee Key"
+FROM "<observations data source url>"
+WHERE ("Employee" IS NULL AND "Employee Key" != '')
+   OR ("Employee" IS NOT NULL AND ("Employee Key" IS NULL OR "Employee Key" = ''))
+```
+
+Repair each row with `notion-update-page`:
+
+- **Key present, relation empty** → set `Employee` to `["<Employee Key>"]`. The common case: every row the manager logged by hand since the last run.
+- **Relation present, key empty** → set `Employee Key` to the dashed page ID inside `Employee`. Until you do, that row is invisible on the person's pages.
+- **Both empty** → do **not** guess, and do not delete. Leave it for the manager.
+
+> [!WARNING]
+> **Never infer an employee from the text of the observation.** "Pair with Marcus on the payments migration" is logged about **Nia**, not Marcus. Names in the body are evidence, not attribution.
 
 ---
 
@@ -204,19 +272,28 @@ Query the new year view in `view` mode and confirm what comes back.
 
 Report what was created with a link to the new employee page, and name the target page you wrote into so a wrong-workspace mistake is caught immediately. If the target came from anywhere but the pinned URL, offer to pin it (see *After resolving* in step 0). Never invent sample observations for a real person.
 
+Also report what step 5 did: how many observations you linked, and — if anything is sitting in `⚠️ Needs linking` — name those rows. That view is the only signal that an observation exists about nobody, and only the manager can resolve it.
+
 ---
 
 ## Filtering — read this before debugging a broken view
 
 > [!WARNING]
-> **The Notion view API cannot filter on relation properties.** `FILTER "Employee" = "Nia Patel"` is accepted and then **silently discarded** — no error is raised, you just get an empty filter group and a view showing everyone. Matching on the page ID instead does not help. Formula properties fail the same way, wrapped in a list `every` operator that matches nothing.
+> **The view API cannot bind a value to a relation, rollup, or formula filter.** `FILTER "Employee" = "Nia Patel"` is accepted and then **silently discarded** — no error, just an empty filter group and a view showing everyone. The page ID as the value does not help; neither does `CONTAINS`; neither does a rollup of the employee's name, nor a formula. Only plain scalars — text, select, date, number, checkbox — can carry a filter value.
 
-This is why the template carries an `Employee Name` **text** property alongside the `Employee` relation: it is the only employee filter the API can actually write. The Notion UI has no such limitation — a human can filter on the relation directly.
+Two facts about Notion, which together explain the whole design:
+
+1. **A text filter's value is pre-filled into rows created in that view.** Hitting **New** on a year page stamps the new observation with that page's `Employee Key` automatically.
+2. **A relation filter is not.** Even set by hand in the UI, where it is perfectly legal, it files rows correctly but leaves the `Employee` field on a new row empty. This was tested; do not re-derive it.
+
+So `Employee Key` is not a workaround for the relation — it does a job the relation cannot do. It **routes** observations to the right person's pages, and it is the only field Notion will fill in on the manager's behalf. The `Employee` relation does the job the key cannot: it **feeds the rollups** (`Last observed`, `Total observations`, `Days since`).
 
 Consequences to respect:
 
-- Set **both** `Employee` (relation) and `Employee Name` (text) on every observation. The relation drives rollups; the text drives every view filter. If they disagree, views silently show wrong rows.
-- `Employee Name` must match the employee page title **character for character**. Renaming a person breaks their views until the text is updated on every one of their observations.
+- The key holds the employee's **page ID**, never a name. IDs survive renames; names do not.
+- Nothing fills the relation automatically. Any observation logged by hand arrives with a key and no relation — which is exactly what *Step 5 — Reconcile* repairs.
+- When you write an observation yourself, set **both** fields. Reconciliation is a net, not a plan.
+- `FILTER "Employee" IS EMPTY` / `IS NOT EMPTY` **do** work on a relation — there is no value to bind. That is what makes the `⚠️ Needs linking` view possible.
 - Formula values are never readable through the API — they return opaque `formulaResult://` references. You cannot verify a formula by reading it back.
 
 ---
@@ -224,7 +301,9 @@ Consequences to respect:
 ## House style
 
 - Observations column order is `Observation, Date, Employee, Type, Status, KPI`. Preserve it.
+- `Employee Key` stays **hidden in every view**. It is machinery, not information — a manager should never see a UUID column in a tool about people.
 - **Never pass `SHOW` when updating a view the user already has**, including the default view — it overwrites their column order and widths.
+- `HIDE "col"` is not a safe alternative: it **resets `displayProperties` to schema order**, destroying a hand-arranged layout. If you must hide something on an existing view, follow it with an explicit `SHOW` in the intended order. Column widths are not recoverable either way.
 - On the Team page, the gallery/card view stays **first**.
 - Do not create a "Needs follow-up" view, and do not create per-employee tabs.
 

@@ -32,9 +32,7 @@ when it gets reconstructed under time pressure from whatever happened most recen
 These skills exist to give the people loop the same paper trail the code loop already has.
 That's the whole idea: **the loop you can see is the loop you can improve.**
 
-Routing PR reviews is the other half of the week, and `/pr-assignments-slack` handles it — but
-how that fits the picture above is still being worked out, so the illustration stays on the one
-loop it can state plainly.
+Routing PR reviews is the other half of the week, and `/pr-assignments-slack` handles it.
 
 ## Install
 
@@ -42,25 +40,27 @@ loop it can state plainly.
 npx github:conraddavisjr/agent-skills-for-managers
 ```
 
+Run with no arguments and nothing is installed — you get the list of commands, what each one
+does, and an example of using it. Once you know what you want:
+
+```bash
+npx github:conraddavisjr/agent-skills-for-managers --all
+```
+
 That installs every command into `.claude/commands/` in the current project. No npm account,
 no global install, nothing to keep up to date — it pulls straight from this repo.
 
-Install just one, by either its filename or the slash command it installs as:
+Install just one, by either its folder name or the slash command it installs as:
 
 ```bash
 npx github:conraddavisjr/agent-skills-for-managers add
-```
-
-See what's available first:
-
-```bash
-npx github:conraddavisjr/agent-skills-for-managers --list
 ```
 
 ### Options
 
 | Flag | Effect |
 | --- | --- |
+| `-a, --all` | Install every available command |
 | `-t, --target <agent>` | `claude` (default), `cursor`, `windsurf`, `generic` |
 | `--dir <path>` | Install to an explicit directory |
 | `-g, --global` | Install to your home directory instead of this project |
@@ -98,13 +98,15 @@ date, and optionally a Notion URL.
 3. Creates the year page
 4. Adds a view filtered to just that person's observations for that year
 5. Adds an all-observations view to their profile page
-6. Confirms the filters return their rows and nobody else's
+6. Reconciles any observations you logged by hand since the last run, so the "last observed"
+   and "total observations" rollups stay accurate
+7. Confirms the filters return their rows and nobody else's
 
 **Finding your tracker.** The command never assumes database IDs — it resolves them on every
 run, so it works in any workspace. It tries, in order: a Notion URL you passed in, the pinned
 `TRACKER_TARGET` URL near the top of the command file, a search by name, then a search by
 *structure* — a tracker is identified by having an Observations database with an
-`Employee Name` column related to an Employees database, which survives any rename. If nothing
+`Employee` relation to an Employees database, which survives any rename. If nothing
 matches, or more than one does, it stops and asks you for the link rather than guessing or
 creating a second tracker.
 
@@ -161,6 +163,7 @@ commands/
 ---
 description: One sentence on what this does and when to use it. This is what the agent matches against, so mention the phrases a user would actually say.
 command: shortname
+example: "/shortname a realistic argument, as you'd actually type it"
 allowed-tools:
   - mcp__some__tool
   - Bash(git status *)
@@ -178,6 +181,7 @@ The installer picks it up automatically — any directory under `commands/` cont
 | --- | --- |
 | `description` | Shown in `--list`; what the agent matches an ask against |
 | `command` | Slash command to bind to. Optional — defaults to the folder name |
+| `example` | One realistic invocation, shown in listings. Optional |
 | `allowed-tools` | Tools the command may use |
 
 `command` exists so a folder can keep a descriptive name in this repo while installing as
@@ -219,31 +223,6 @@ Two things worth doing:
 - **Record what you learned the hard way.** API quirks, silent failures, conventions that
   matter. That knowledge is the real value — it's why the next run doesn't repeat your
   debugging.
-
-## The illustration
-
-`assets/hero.svg` is hand-written and meant to be edited. Every visible string sits between
-the `EDIT LABELS HERE` and `END EDIT LABELS` markers, colours and timing are CSS custom
-properties at the top of the file, and node centres sit on a documented grid — so relabelling
-a stage or adding a fourth one is a small, local change rather than a redraw. It adapts to
-GitHub's light and dark themes from a single file and honours `prefers-reduced-motion`.
-
-A second **review loop** lane — PR opened → reviewed → merged — is still in the file, wrapped
-in a comment block marked `REVIEW LOOP — HIDDEN, NOT DELETED`. Restoring it is three steps,
-listed there. It was set aside because it described the software lifecycle more than it
-described the manager's part in it.
-
-`assets/hero.gif` is the same illustration rasterised, for places that can't display an
-animated SVG — a slide, a talk, a social card. Regenerate it with:
-
-```bash
-brew install librsvg imagemagick gifsicle
-python3 scripts/render-gif.py --width 1000
-```
-
-Add `--theme dark` for a version that sits on a dark background; a GIF has no equivalent of
-`prefers-color-scheme`, so each theme is a separate file. The SVG stays the source of truth —
-regenerate the GIF after editing it, never the other way round.
 
 ## License
 
