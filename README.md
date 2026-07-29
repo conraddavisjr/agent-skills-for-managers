@@ -71,6 +71,29 @@ Existing files are never overwritten unless you pass `--force`.
 
 After installing into Claude Code, restart it and the commands appear as slash commands.
 
+### Updating
+
+An installed command is a **snapshot**. It's rendered once and never changes again, so fixes pushed
+here don't reach a copy you already have. To pull the current version:
+
+```bash
+npx github:conraddavisjr/agent-skills-for-managers --all --force
+```
+
+`--force` is the point — without it the installer finds the existing file and skips it. Restart your
+agent afterwards, since command files are read at startup.
+
+Each installed file carries a comment under its frontmatter recording when and from what it was built:
+
+```markdown
+<!-- Installed 2026-07-29 from conraddavisjr/agent-skills-for-managers@59d630a
+     Update with: npx github:conraddavisjr/agent-skills-for-managers add --force -->
+```
+
+The commands read that stamp themselves. If one ever stops because your setup no longer matches what
+it expects, it will quote that date and tell you how to update — a stale copy is the most common
+reason for the mismatch.
+
 ---
 
 ## Command reference
@@ -103,22 +126,31 @@ date, and optionally a Notion URL.
 7. Confirms the filters return their rows and nobody else's
 
 **Finding your tracker.** The command never assumes database IDs — it resolves them on every
-run, so it works in any workspace. It tries, in order: a Notion URL you passed in, the pinned
-`TRACKER_TARGET` URL near the top of the command file, a search by name, then a search by
-*structure* — a tracker is identified by having an Observations database with an
-`Employee` relation to an Employees database, which survives any rename. If nothing
-matches, or more than one does, it stops and asks you for the link rather than guessing or
-creating a second tracker.
+run, so it works in any workspace and survives any rename.
 
-So renaming your page is fine. To make the rename permanent, edit the URL in the
-`TRACKER_TARGET` comment at the top of the command file; the command offers to do this for
-you whenever it had to fall back to searching. The pin ships pointing at my tracker, which you
-can't read — your first run will quietly skip it and search your workspace instead.
+The rule it follows is that **a search only produces candidates; a marker confirms one.** Your
+tracker carries `feedback-os/v1` in the description of the Observations title property —
+invisible in normal use, but it survives duplication and gets read on every run. Candidates
+come from an explicit URL, the pin, a structural search, and finally a search by name; each is
+then verified, and **nothing is written to a page that isn't confirmed.**
+
+That last part is the point. A structural check alone would pass on any people-table-plus-notes-table
+in your workspace, and scattering employee pages through an unrelated project isn't easy to
+undo. If two trackers are confirmed — a sandbox copy alongside a live one — it lists them and
+asks rather than picking.
+
+If you don't have a tracker, it won't invent one: it points you at `/init` or the published
+template. If you have one predating markers, it walks you through adding the marker — a
+one-time UI step, since Notion has no API for writing a property description.
+
+The pin ships empty. Your first run resolves your tracker and offers to write the URL into the
+`TRACKER_TARGET` comment, making every later run a single fetch — and reinstalling carries it
+forward, so `--force` won't cost you the setting.
 
 **Requires:** the [Notion MCP connector](https://www.notion.so/help/notion-mcp) and a copy of
 the template.
 
-> **Get the template:** <!-- NOTION_TEMPLATE_URL --> *(link coming — the template is still being finalized)*
+> **Get the template:** <!-- NOTION_TEMPLATE_URL --> https://woolly-navy-883.notion.site/team-obserations-ai-tool-by-conrad-davis-jr
 
 The command also carries the non-obvious lessons from building the template, so the agent
 doesn't rediscover them the hard way. Most importantly: **Notion's view API silently discards

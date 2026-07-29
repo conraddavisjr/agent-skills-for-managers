@@ -10,6 +10,7 @@ allowed-tools:
   - mcp__claude_ai_Notion__notion-create-view
   - mcp__claude_ai_Notion__notion-query-data-sources
   - mcp__claude_ai_Notion__notion-update-page
+  - AskUserQuestion
   - Edit
 ---
 
@@ -25,38 +26,156 @@ Everything after `/add` is `$ARGUMENTS`: a name, optionally a role, team, start 
 
 ## Configuration — the target page
 
-<!-- TRACKER_TARGET: https://www.notion.so/3abf8853595081a4b59cf9ddbadfa4f9 -->
+<!-- TRACKER_TARGET:  -->
 
-The HTML comment above is the **pinned target**: the tracker home page this command writes into. It is a hint, not a guarantee — pages get renamed, moved, and re-duplicated. Treat it as the first thing to try and the last thing to update, never as something to trust blindly.
+The HTML comment above is the **pinned target**: the tracker home page this command writes into. **It ships empty.** The first successful run resolves the user's tracker and offers to write the URL here, so every later run is a single fetch instead of a search.
 
-To repoint this command permanently, replace the URL in that comment. To repoint it for a single run, pass a Notion URL in `$ARGUMENTS`.
+A pin is a shortcut, not a permission slip — it is verified exactly like any other candidate, because pages get renamed, moved, deleted, and re-duplicated.
 
-The pinned URL points at the author's tracker. If you installed this from the repo, the first run won't be able to fetch it and will fall through to searching your own workspace — that is expected, not an error. `Edit` is in `allowed-tools` **only** so this one line can be rewritten once you confirm the right page; do not use it to edit anything else.
+To repoint permanently, replace the URL in that comment. To repoint for a single run, pass a Notion URL in `$ARGUMENTS`.
+
+`Edit` is in `allowed-tools` **only** so this one line can be rewritten once you have confirmed the right page; do not use it to edit anything else. Reinstalling carries the pin forward, so updating with `--force` will not cost the user this setting.
 
 ---
 
 ## Step 0 — Resolve the target page
 
-**Never hardcode database or data source IDs.** They differ in every workspace and change when a template is re-duplicated. Resolve them fresh on every run, in this order, stopping at the first candidate that passes validation:
+**Never hardcode database or data source IDs.** They differ in every workspace and change when a template is re-duplicated. Resolve them fresh on every run.
 
-1. **A Notion URL or bare page ID in `$ARGUMENTS`.** An explicit link always wins.
-2. **The pinned `TRACKER_TARGET` URL above**, if one is set. If fetching it fails — deleted, moved, or a workspace you have no access to — say so in one line and continue to step 3. A stale pin is not a reason to stop.
-3. **Search by name.** Call `notion-search` for `Feedback OS Team Observation Tracker`, then — if that returns nothing useful — `Feedback OS`, then `team observation tracker`, then `observations manager feedback`. The page name is expected to drift; do not require an exact match.
-4. **Search by structure.** Query for the contents rather than the title: `notion-search` for `observation KPI exemplary employee` or fetch any `Observations` database that surfaces and walk up its `<ancestor-path>` to the home page. A renamed home page still contains databases whose property names are distinctive.
-5. **Ask.** If nothing validates, or two or more candidates do, stop and ask the user for a link to their Feedback OS page. Show what you found and why it was rejected or ambiguous. **Never guess, and never create a new tracker** — a wrong target silently scatters pages across the wrong workspace.
+The rule that governs this entire step: **a search produces candidates; only the marker confirms one.** Titles drift, users rename things, and more than one page in a workspace can legitimately look like a tracker. Nothing is written until a candidate is confirmed.
 
-### Validate the candidate before writing
+### The marker
 
-A candidate is the right target only if `notion-fetch` on it reveals **both**:
+A Feedback OS tracker identifies itself by a token in the **description of the Observations title property**. Fetch the Observations data source and read the `description` on its title property:
 
-- an **Observations** database whose schema has an `Observation` title, a `Date` date, an `Employee` relation, and an `Employee Key` **text** property
-- an **Employees** database — the one the `Employee` relation points at — with a `Name` title and `Status`, `Role`, `Team` properties
+```
+One line. What did you notice?
+feedback-os/v1
+```
 
-Match on this shape, not on names. Any of these may have been renamed; the reference template ships them as `Observations` and `Employees`, and the Employees database may sit inline on the home page or on a `Team` subpage. Resolve Employees by following the `dataSourceUrl` on the Observations `Employee` relation — that link survives every rename.
+Match the `feedback-os/` prefix, then read the version after the slash. This command knows **v1**.
 
-If the shape matches but a property is missing, say which one and stop. In particular: **if there is no `Employee Key` text property**, there is nothing the API can filter on — see *Filtering* below. Offer to add it (`ADD COLUMN "Employee Key" RICH_TEXT`, then backfill it from each observation's `Employee` relation) rather than creating views that silently show everyone.
+| Found | Meaning |
+| --- | --- |
+| `feedback-os/v1` | Confirmed. Safe to write |
+| `feedback-os/` with a higher version | The template is newer than this command. Say so, quote your install stamp, and offer the update command before touching anything |
+| No marker | **Not confirmed.** See *Adopting an unmarked tracker* |
 
-Older copies of this template carry an `Employee Name` text property instead, holding the person's **display name**. That design is retired: renaming anyone silently detaches their rows and can serve one person's observations on another person's page. If you find it, say so and offer to migrate — the replacement stores the employee's page ID, which never changes.
+> [!WARNING]
+> **No marker, no writes.** Shape is not proof. Any HR-ish setup with a people table and a notes table can pass a structural check, and scattering employee pages and views through someone's unrelated project is not something they can easily undo. When in doubt, stop and ask.
+
+### Where to look, in order
+
+1. **A Notion URL or bare page ID in `$ARGUMENTS`.** An explicit link goes to the front of the queue. It is still verified.
+2. **The pinned `TRACKER_TARGET`**, if set. If the fetch fails — deleted, moved, no access — say so in one line and keep going. If the fetch succeeds but the marker is absent, the pin is pointing somewhere wrong: say that too, and keep going.
+3. **Search by structure.** This is what finds a tracker no matter what it has been renamed to. Look for an Observations-shaped database — a title, a `Date`, an `Employee` relation, an `Employee Key` text — then walk its `<ancestor-path>` up to the home page. Useful queries: `observation KPI exemplary employee`, `Employee Key observation`.
+4. **Search by name**, last and least: `Feedback OS`, `team observation tracker`. Expect noise — these queries return unrelated pages that merely discuss feedback. A name match is a candidate and nothing more.
+
+### Resolving to one
+
+Verify every candidate, discard the unmarked, then:
+
+| Confirmed | Do |
+| --- | --- |
+| Exactly one | Name the page and its URL, proceed, and offer to pin it |
+| Two or more | **Ask.** List each title and URL and let the user choose. Never auto-pick — a sandbox copy and a live one are both genuine trackers, and only the user knows which they mean |
+| None | Stop — see *When there is no tracker* |
+
+### Then check it can be written to
+
+Confirming identity is not the same as confirming capability. On the confirmed tracker, check:
+
+- the **Observations** database has an `Observation` title, a `Date` date, an `Employee` relation, and an `Employee Key` **text** property
+- the **Employees** database — the one the `Employee` relation points at — has a `Name` title and `Status`, `Role`, `Team` properties
+
+Resolve Employees by following the `dataSourceUrl` on the Observations `Employee` relation; that link survives every rename. The reference template ships these as `Observations` and `Employees`, and Employees may sit inline on the home page or on a `Team` subpage.
+
+If a property is missing, say which one and stop. In particular: **if there is no `Employee Key` text property**, there is nothing the API can filter on — see *Filtering* below. Offer to add it (`ADD COLUMN "Employee Key" RICH_TEXT`, then backfill from each observation's `Employee` relation) rather than creating views that silently show everyone.
+
+Older copies carry an `Employee Name` text property instead, holding the person's **display name**. That design is retired: renaming anyone silently detaches their rows and can serve one person's observations on another person's page. If you find it, say so and offer to migrate — the replacement stores the employee's page ID, which never changes.
+
+### Adopting an unmarked tracker
+
+A page whose shape matches but which carries no marker is most likely a tracker built before markers existed. Do not assume, and do not write to it.
+
+> [!NOTE]
+> **You cannot add the marker yourself.** Property descriptions are readable through `notion-fetch` but there is no API to write one — the schema DDL only does `ADD`/`DROP`/`RENAME`/`ALTER COLUMN`, and a data source's own `description` is write-only (it never comes back on a fetch, so it can't be a marker). This is a UI-only step, like the card and visibility settings elsewhere in this template.
+
+Say what you found, name the page and its URL, and give the user the one-time step:
+
+1. Open the **Observations** database
+2. Click the **`Observation`** column header → **Edit property** → **Description**
+3. Add `feedback-os/v1` on its own line, keeping whatever text is already there
+
+Then offer to re-run. Once marked, every future run — and every copy duplicated from it — resolves without asking.
+
+If they would rather not, you may proceed **only** if they explicitly confirm the page is their tracker, and you must say plainly that you are proceeding on their word without verification. Prefer marking. Never proceed on your own judgement of the shape alone.
+
+### When there is no tracker
+
+Nothing confirmed and nothing to adopt means the user does not have Feedback OS yet.
+
+**Do not create one.** That is `/init`'s job — building the structure in two places guarantees the two drift apart, and parts of the setup are UI-only anyway. Stop and offer the two ways to get a tracker:
+
+1. **Run `/init`**, which builds it in their workspace
+2. **Duplicate the published template**, then re-run `/add`
+
+Then stop. Creating employee pages with nowhere coherent to put them is worse than doing nothing.
+
+### Whenever you stop, say how to get unstuck
+
+Any halt in this step — a property missing, a shape that doesn't match, a retired design found, a marker version you don't recognise — must end with **both** of these, or the user is left with a diagnosis and no remedy:
+
+1. **What to fix in Notion**, naming the exact property.
+2. **How to update this command**, because the likelier cause is that this file is older than the template it's describing.
+
+Two halts are *not* staleness and must not suggest reinstalling: **no tracker found** (they need `/init` or the template) and **two or more confirmed trackers** (they need to pick one). Reinstalling fixes neither.
+
+You are a snapshot. This file was rendered at install time and has not changed since; the repo has. Near the top, just under the frontmatter, is a comment reading `<!-- Installed <date> from <repo>@<ref> -->`. **Read it and quote the date**, then give the update command verbatim:
+
+```
+npx github:conraddavisjr/agent-skills-for-managers add --force
+```
+
+`--force` is required — without it the installer sees the existing file and skips it silently. After updating, the user must restart their agent before the new version is read.
+
+If the stamp is absent, the copy predates stamping and is definitely stale — say so.
+
+Phrase it as the likely fix, not a certainty. A schema mismatch can equally mean the template was customised, and telling someone to reinstall when they have deliberately renamed a property is unhelpful.
+
+### What to say while resolving
+
+Resolution is plumbing. Everything in this step — the four lookup routes, the marker, the property
+audit — is *how you decided*, not what a manager onboarding a hire needs to read.
+
+**Say nothing while working.** On the happy path this entire step emits one line, once it is done:
+
+```
+✅ Found your tracker — [📘 EDIT: Team Observation Tracker](url)
+```
+
+Then the current roster, bulleted, **capped at five**, with a `+N more` line when it overflows:
+
+```
+Current roster
+- Marcus Lindqvist — PM, Product
+- Sophia Reyes — SWE II, Engineering
+- Nia Patel — Senior SWE, Engineering
++7 more
+```
+
+A `<details>` block renders as raw tags in a terminal, so truncation is the expander. The roster is
+there so a duplicate is caught at a glance; it is not a report.
+
+Never narrate which route hit, that the marker was found or which version it carried, the property
+audit, database or data source IDs, or the phrase "step 0".
+
+> [!IMPORTANT]
+> **This silence applies to the happy path only.** Every halt above still reports in full — a pin
+> pointing at the wrong page, a missing property, two or more confirmed candidates, an unmarked
+> tracker, a marker version you don't recognise, no tracker at all. Each still names the page, the
+> exact property, and the update command, exactly as written above. A silent failure is worse than
+> a verbose one.
 
 Carry four values out of this step:
 
@@ -67,24 +186,75 @@ Observations database id  +  data source id
 
 ### After resolving
 
-If the target came from anywhere other than the pinned URL (steps 1, 3, 4, or 5), tell the user at the end which page you used and offer to update the `TRACKER_TARGET` comment in this file so the next run resolves in one call. Do not edit the file without being asked.
+If the target came from anywhere other than the pin, tell the user at the end which page you used and offer to write its URL into the `TRACKER_TARGET` comment so the next run resolves in a single fetch. Do not edit the file without being asked.
+
+This matters most on a **first run**, where the pin ships empty and resolution costs several searches. Pinning turns every subsequent run into one call, and the pin now survives reinstalling.
 
 ---
 
 ## Step 1 — Gather inputs
 
-Take whatever `$ARGUMENTS` already supplied — `/add Priya Raman, senior designer, Design, starting Monday` should need no follow-up question. Ask only for what's missing. Don't interrogate the user for fields with sensible defaults.
+Parse `$ARGUMENTS` first and ask only for what is genuinely missing. `/add Priya Raman, senior designer, Design, starting Monday` is complete — ask nothing at all and go straight to step 2.
 
-Full name is the only hard requirement; if `$ARGUMENTS` is empty, ask for it. Resolve relative dates ("Monday", "next week") against today before writing.
+Full name is the only hard requirement.
 
 | Input | Required | Default |
 | --- | --- | --- |
 | Full name | Yes | — |
-| Role / title | No | leave blank |
+| Role | No | leave blank |
 | Team | No | `Engineering` |
 | Start date | No | leave blank |
 | Photo | No | generate an avatar |
 | Years to create | No | current year only |
+
+### If the name is missing
+
+One line, then stop and wait:
+
+```
+**Who are you adding?** Full name — *required*
+
+/add Priya Raman, senior designer, Design, starting Monday
+```
+
+The second line is a pre-filled example the manager can accept and edit. Do **not** list the optional fields here — they are collected in the picker below, and repeating them turns a single question into a form.
+
+### Collect the optional fields with `AskUserQuestion`
+
+Once you have a name, ask for everything still missing in a **single** `AskUserQuestion` call, so the manager arrows through it instead of typing. One question per missing field, four maximum, in this order. Omit any question whose field `$ARGUMENTS` already supplied — nothing is asked twice.
+
+Options come from the tracker, not from this file. You already fetched the Employees data source in step 0.
+
+| Question | `header` | Options, in order |
+| --- | --- | --- |
+| Role | `Role` | the three most common `Role` values on the roster, then `Skip — leave blank` |
+| Team | `Team` | the four most common `Team` values on the roster, `Engineering` first and labelled `(default)` |
+| Start date | `Start date` | `Today`, `Next Monday`, `Skip — leave blank` |
+| Avatar | `Avatar` | `Generate an avatar`, `I'll provide a photo URL`, `Skip` |
+
+- Every question carries a free-text **Other** row automatically. That is how a manager enters a role or team the roster hasn't seen yet, or a specific date. Don't spend an option slot on it, and never add one named "Other".
+- **Team options must be real values of the `Team` select.** Read them off the schema; offering a value the property doesn't have produces a write that fails at step 2.
+- **Empty roster — the first hire.** There is nothing to rank. Take Team's options straight from the select schema, and drop the Role question in favour of asking for it in the text form below.
+- `Skip`, or `Other` left empty, means the documented default: blank for role and start date, `Engineering` for team.
+- `I'll provide a photo URL` → ask for the URL on one line after the panel and use it for both the page `icon` and `cover` in step 2, instead of generating. Anything else falls through to *Represent people properly*, which still governs how a generated avatar is chosen.
+- Resolve relative answers — `Today`, `Next Monday`, and whatever is typed into `Other` — against today's date before writing.
+
+### If `AskUserQuestion` is unavailable
+
+Cursor, Windsurf and generic installs have no picker. Fall back to one terse block, then wait:
+
+```
+**Who are you adding?**
+
+Full name — *required*
+Role — *optional*
+Team — *optional* · Engineering | Product | Design | Data | Sales | Marketing | Operations | Other
+Start date — *optional*
+
+/add Priya Raman, senior designer, Design, starting Monday
+```
+
+Teams stay pipe-separated on one line, and read the real options off the `Team` select rather than copying the list above. No "otherwise left blank" annotations — `*optional*` already says it.
 
 ---
 

@@ -23,6 +23,29 @@ drive reviewer selection — lives in the **Workspace** and **Engineer Profiles*
 ship as placeholders in angle brackets. If you meet one that still looks like `<PROJECT>` or
 `<github-login-1>`, stop and tell the user which value is unset instead of guessing.
 
+## Whenever you stop, say how to get unstuck
+
+Several steps below halt deliberately — an unset placeholder, a connector that won't authenticate, a
+Jira query returning nothing. Every one of those must end with the fix, not just the diagnosis.
+
+For anything that looks like this file disagreeing with reality — a tool name that no longer exists, a
+field the API stopped returning, instructions describing something you cannot find — remember that
+**you are a snapshot**. This file was rendered at install time and has not changed since; the repo has.
+Just under the frontmatter is a comment reading `<!-- Installed <date> from <repo>@<ref> -->`. Read it,
+quote the date, and give the update command verbatim:
+
+```
+npx github:conraddavisjr/agent-skills-for-managers pr-assignments-slack --force
+```
+
+`--force` is required — without it the installer sees the existing file and skips it silently. After
+updating, the user must restart their agent before the new version is read. If the stamp is absent, the
+copy predates stamping and is definitely stale.
+
+This does **not** apply to an unset placeholder or a failed connector: those are configuration, and
+reinstalling would wipe local edits to the config section without fixing anything. Reserve the update
+suggestion for genuine drift between these instructions and the systems they describe.
+
 ---
 
 <!-- include: team-config.md -->
