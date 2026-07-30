@@ -152,6 +152,18 @@ the template.
 
 > **Get the template:** <!-- NOTION_TEMPLATE_URL --> https://woolly-navy-883.notion.site/team-obserations-ai-tool-by-conrad-davis-jr
 
+#### What the tracker does
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./assets/how-it-works-dark.gif">
+  <img alt="Five panels: recency bias runs your review cycle; four prompts instead of a blank page; log it from their page and it files itself; see where your attention actually went; review season becomes reading, not remembering." src="./assets/how-it-works.gif">
+</picture>
+
+The same five panels run as an interactive carousel inside the template itself.
+`assets/how-it-works.html` is the source of truth — regenerate the GIFs with
+`python3 scripts/render-about-gif.py` after editing it, and again with
+`--theme dark` for the dark variant.
+
 The command also carries the non-obvious lessons from building the template, so the agent
 doesn't rediscover them the hard way. Most importantly: **Notion's view API silently discards
 filters on relation properties.** No error is raised — you just get a view showing everyone.

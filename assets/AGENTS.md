@@ -9,8 +9,11 @@ README: a reader of this repo needs the commands, not the drawing's internals.
 | --- | --- |
 | `hero.svg` | **Source of truth.** Hand-written, meant to be edited. |
 | `hero.gif` | Derived raster of the same image, for places that can't show an animated SVG. |
+| `how-it-works.html` | **Source of truth.** The five-panel carousel embedded in the published Notion template. |
+| `how-it-works.gif` | Derived. Light-theme frames, used in the root README. |
+| `how-it-works-dark.gif` | Derived. Dark-theme frames; the README picks between them with `<picture>`. |
 
-Never hand-edit `hero.gif`, and never treat it as authoritative. Edit the SVG, then
+Never hand-edit a `.gif`, and never treat one as authoritative. Edit the source, then
 regenerate.
 
 ## Editing `hero.svg`
@@ -56,6 +59,36 @@ python3 scripts/render-gif.py --width 1000
 `--theme dark` bakes in the dark token set. A GIF has no equivalent of
 `prefers-color-scheme`, so each theme is a separate file — pass `--out` to avoid clobbering
 the light one.
+
+## Regenerating the how-it-works GIFs
+
+```bash
+python3 scripts/render-about-gif.py                 # assets/how-it-works.gif
+python3 scripts/render-about-gif.py --theme dark    # assets/how-it-works-dark.gif
+```
+
+Both files are referenced by the root README, so regenerate **both** or the two themes
+drift apart.
+
+This one is not a screenshot of the carousel. Each panel's illustration is an inline
+`<svg>`, but its step label, headline and caption live in a sibling `div.cap` — rasterising
+the SVGs alone would drop the words that carry the argument. So the script *composes* each
+frame: illustration plus text, laid out into one standalone SVG, then rasterised.
+
+Two things will bite you if you change the HTML's shape:
+
+- The script finds panels by `<section class="slide">`, and within each one expects an
+  `<svg viewBox=…>`, a `div.step`, an `h2` and a `p`. Rename or restructure those and it
+  exits with `no slides parsed` rather than silently emitting a broken GIF.
+- **Caption baselines are pinned across frames.** Panel 1's illustration is 260 user units
+  tall and the rest are 290; laying each caption directly under its own illustration made
+  the text jump on every advance. `ILL_BAND` is fixed at the tallest panel's height. If you
+  add a panel taller than 290, raise `ILL_BAND` and the `CAP_*` constants together.
+
+Same librsvg caveat as `hero.svg`: custom properties are not implemented, so every
+`var(--token)` — in the `<style>` block *and* in presentation attributes like
+`fill="var(--people)"` — is substituted with a literal before rasterising. An unresolved
+render loses colour entirely.
 
 The script is thoroughly commented; read its docstring before changing it. The one thing
 worth knowing up front: librsvg doesn't implement CSS custom properties, so the script
