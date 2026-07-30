@@ -16,7 +16,7 @@ instructions.
 
 | What you're doing | Command | Key principle |
 | --- | --- | --- |
-| Onboarding a new report | `/add` | Build the record before you need it, not the week reviews are due |
+| Onboarding a new report | `/add-team-member` | Build the record before you need it, not the week reviews are due |
 | Getting a sprint's PRs reviewed | `/pr-assignments-slack` | Route by who has capacity, not by who's loudest |
 
 ## The loop
@@ -53,7 +53,7 @@ no global install, nothing to keep up to date — it pulls straight from this re
 Install just one, by either its folder name or the slash command it installs as:
 
 ```bash
-npx github:conraddavisjr/agent-skills-for-managers add
+npx github:conraddavisjr/agent-skills-for-managers add-team-member
 ```
 
 ### Options
@@ -87,7 +87,7 @@ Each installed file carries a comment under its frontmatter recording when and f
 
 ```markdown
 <!-- Installed 2026-07-29 from conraddavisjr/agent-skills-for-managers@59d630a
-     Update with: npx github:conraddavisjr/agent-skills-for-managers add --force -->
+     Update with: npx github:conraddavisjr/agent-skills-for-managers add-team-member --force -->
 ```
 
 The commands read that stamp themselves. If one ever stops because your setup no longer matches what
@@ -98,7 +98,7 @@ reason for the mismatch.
 
 ## Command reference
 
-### `/add`
+### `/add-team-member`
 
 *Source: [`commands/add-team-member/`](./commands/add-team-member)*
 
@@ -110,8 +110,8 @@ a year page, a filtered view on that year page, and an all-observations view on 
 Notion can't auto-create a view when you add a row, so this is otherwise a repetitive chore
 every time someone joins. The command does all four, then verifies the filter actually took.
 
-**You say:** *`/add Priya Raman, senior designer, Design, starting Monday`* — or just `/add`
-and answer the questions. Everything after `/add` is parsed for a name, role, team, start
+**You say:** *`/add-team-member Priya Raman, senior designer, Design, starting Monday`* — or just `/add-team-member`
+and answer the questions. Everything after `/add-team-member` is parsed for a name, role, team, start
 date, and optionally a Notion URL.
 
 **It does:**
@@ -194,7 +194,7 @@ commands/
 ```markdown
 ---
 description: One sentence on what this does and when to use it. This is what the agent matches against, so mention the phrases a user would actually say.
-command: shortname
+command: shortname # optional — omit and the folder name becomes the slash command
 example: "/shortname a realistic argument, as you'd actually type it"
 allowed-tools:
   - mcp__some__tool
@@ -216,10 +216,11 @@ The installer picks it up automatically — any directory under `commands/` cont
 | `example` | One realistic invocation, shown in listings. Optional |
 | `allowed-tools` | Tools the command may use |
 
-`command` exists so a folder can keep a descriptive name in this repo while installing as
-something short you'd actually type: `commands/add-team-member/` installs as
-`add.md`, giving you `/add`. Keep these short names distinct — the installed filename wins,
-so two commands claiming the same `command` will collide in `.claude/commands/`.
+Leave `command` out and the folder name is the slash command: `commands/add-team-member/`
+installs as `add-team-member.md`, giving you `/add-team-member`. Set it when you want a folder to
+keep a descriptive name here while installing as something shorter. Either way, keep the installed
+names distinct — the filename wins, so two commands claiming the same one will collide in
+`.claude/commands/`.
 
 ### Splitting a long command
 

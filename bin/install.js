@@ -246,7 +246,7 @@ ${dim('Existing files are never overwritten unless you pass --force.')}
 `);
 }
 
-// A command may pin a resolved target into its own file — `/add` stores the Notion
+// A command may pin a resolved target into its own file — `/add-team-member` stores the Notion
 // page it writes into. That pin is the user's, not ours, and reinstalling must not
 // throw it away: the documented way to get a fix is `--force`, which overwrites.
 // So carry any non-empty pin from the copy on disk into the fresh render.

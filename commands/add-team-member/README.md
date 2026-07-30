@@ -1,16 +1,16 @@
-# `/add` — add a team member
+# `/add-team-member` — add a team member
 
-Installs as `add.md`, so you type `/add`.
+Installs as `add-team-member.md`, so you type `/add-team-member`.
 
 Onboards a new direct report into your Notion team-observation tracker: the place you log
 what you noticed about someone, so that six months later the record exists and you aren't
 reconstructing a review from whatever happened most recently.
 
 ```
-/add Priya Raman, senior designer, Design, starting Monday
+/add-team-member Priya Raman, senior designer, Design, starting Monday
 ```
 
-Or just `/add` and answer the questions. Everything after the command is parsed for a name,
+Or just `/add-team-member` and answer the questions. Everything after the command is parsed for a name,
 role, team, start date, and optionally a Notion URL. Only the name is required.
 
 The name is the only thing you type — role, team, start date and avatar arrive as a keyboard
