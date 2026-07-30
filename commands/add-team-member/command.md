@@ -1,8 +1,7 @@
 ---
-command: add
-description: Onboard a new direct report into your Notion team-observation tracker — creates their profile card with avatar, their year page, and the filtered views that surface their observations. Use when the manager says "/add <name>", "add <name> to my team", "I have a new report starting", or "set up a page for our new hire".
+description: Onboard a new direct report into your Notion team-observation tracker — creates their profile card with avatar, their year page, and the filtered views that surface their observations. Use when the manager says "/add-team-member <name>", "add <name> to my team", "I have a new report starting", or "set up a page for our new hire".
 argument-hint: <full name> [role] [team] [start date] [notion page url]
-example: "/add Priya Raman, senior designer, Design, starting Monday"
+example: "/add-team-member Priya Raman, senior designer, Design, starting Monday"
 allowed-tools:
   - mcp__claude_ai_Notion__notion-search
   - mcp__claude_ai_Notion__notion-fetch
@@ -14,13 +13,13 @@ allowed-tools:
   - Edit
 ---
 
-# /add
+# /add-team-member
 
 Add a team member to Feedback OS — a Notion template for managers who log observations about their reports over time.
 
 Onboarding someone requires four linked objects created in the right order. Notion cannot auto-create a view when a row is added, so this is otherwise a repetitive manual chore. Follow every step in order.
 
-Everything after `/add` is `$ARGUMENTS`: a name, optionally a role, team, start date, and a Notion URL. Parse what's there, ask only for what's missing and required.
+Everything after `/add-team-member` is `$ARGUMENTS`: a name, optionally a role, team, start date, and a Notion URL. Parse what's there, ask only for what's missing and required.
 
 ---
 
@@ -118,7 +117,7 @@ Nothing confirmed and nothing to adopt means the user does not have Feedback OS 
 **Do not create one.** That is `/init`'s job — building the structure in two places guarantees the two drift apart, and parts of the setup are UI-only anyway. Stop and offer the two ways to get a tracker:
 
 1. **Run `/init`**, which builds it in their workspace
-2. **Duplicate the published template**, then re-run `/add`
+2. **Duplicate the published template**, then re-run `/add-team-member`
 
 Then stop. Creating employee pages with nowhere coherent to put them is worse than doing nothing.
 
@@ -134,7 +133,7 @@ Two halts are *not* staleness and must not suggest reinstalling: **no tracker fo
 You are a snapshot. This file was rendered at install time and has not changed since; the repo has. Near the top, just under the frontmatter, is a comment reading `<!-- Installed <date> from <repo>@<ref> -->`. **Read it and quote the date**, then give the update command verbatim:
 
 ```
-npx github:conraddavisjr/agent-skills-for-managers add --force
+npx github:conraddavisjr/agent-skills-for-managers add-team-member --force
 ```
 
 `--force` is required — without it the installer sees the existing file and skips it silently. After updating, the user must restart their agent before the new version is read.
@@ -194,7 +193,7 @@ This matters most on a **first run**, where the pin ships empty and resolution c
 
 ## Step 1 — Gather inputs
 
-Parse `$ARGUMENTS` first and ask only for what is genuinely missing. `/add Priya Raman, senior designer, Design, starting Monday` is complete — ask nothing at all and go straight to step 2.
+Parse `$ARGUMENTS` first and ask only for what is genuinely missing. `/add-team-member Priya Raman, senior designer, Design, starting Monday` is complete — ask nothing at all and go straight to step 2.
 
 Full name is the only hard requirement.
 
@@ -214,7 +213,7 @@ One line, then stop and wait:
 ```
 **Who are you adding?** Full name — *required*
 
-/add Priya Raman, senior designer, Design, starting Monday
+/add-team-member Priya Raman, senior designer, Design, starting Monday
 ```
 
 The second line is a pre-filled example the manager can accept and edit. Do **not** list the optional fields here — they are collected in the picker below, and repeating them turns a single question into a form.
@@ -251,7 +250,7 @@ Role — *optional*
 Team — *optional* · Engineering | Product | Design | Data | Sales | Marketing | Operations | Other
 Start date — *optional*
 
-/add Priya Raman, senior designer, Design, starting Monday
+/add-team-member Priya Raman, senior designer, Design, starting Monday
 ```
 
 Teams stay pipe-separated on one line, and read the real options off the `Team` select rather than copying the list above. No "otherwise left blank" annotations — `*optional*` already says it.
@@ -355,7 +354,7 @@ The children must be indented with a tab or they won't nest inside the toggle.
 
 The Employees database ships with a **database template** carrying the static half of this layout — the intro line, both dividers, the `✏️ Personal Notes` toggle, and the `## All observations` heading. Anyone who adds a person with Notion's **New** button gets those blocks already in place.
 
-So `/add` may be handed a page that is partly built. **Fetch the page before writing to it** and add only what is missing. Appending blindly produces two intro lines, two Personal Notes toggles, and two "All observations" headings.
+So `/add-team-member` may be handed a page that is partly built. **Fetch the page before writing to it** and add only what is missing. Appending blindly produces two intro lines, two Personal Notes toggles, and two "All observations" headings.
 
 What a template can never supply, and what this command therefore always owns:
 

@@ -7,7 +7,7 @@ from memory every sprint. These automate the recording, not the judgement.
 
 | Command | Folder | What it does | Connects to |
 | --- | --- | --- | --- |
-| `/add` | [`add-team-member/`](./add-team-member) | Onboards a new direct report into your Notion tracker — profile card, year page, and the filtered views that surface their observations | Notion |
+| `/add-team-member` | [`add-team-member/`](./add-team-member) | Onboards a new direct report into your Notion tracker — profile card, year page, and the filtered views that surface their observations | Notion |
 | `/pr-assignments-slack` | [`pr-assignments-slack/`](./pr-assignments-slack) | Assigns reviewers to the sprint's open PRs by capacity and availability, then posts the round-up to Slack | Jira, GitHub, Slack, Google Calendar |
 
 Each folder has its own README with the detail: what the command does step by step, what you
@@ -31,8 +31,10 @@ the agent matches your request against), an optional `command:` naming the slash
 `allowed-tools` limiting what it may touch. Everything after the frontmatter is instructions,
 in order.
 
-A folder name and its slash command are allowed to differ. `add-team-member/` installs as
-`add.md` and gives you `/add` — descriptive on disk, short to type.
+By default a folder installs under its own name: `add-team-member/` becomes `add-team-member.md`
+and gives you `/add-team-member`. A folder and its slash command are allowed to differ — that's
+what the optional `command:` field is for — but both commands here keep the two the same, so the
+name on disk is the name you type.
 
 ## How they install
 
