@@ -16,6 +16,8 @@ instructions.
 
 | What you're doing | Command | Key principle |
 | --- | --- | --- |
+| Teaching the pipeline about your team | `/onboard-setup` | Discover the config from your calendar; don't make people fill in a file |
+| Running week one for a new hire | `/onboard` | Show the whole plan first, and be safe to run twice |
 | Onboarding a new report | `/add-team-member` | Build the record before you need it, not the week reviews are due |
 | Getting a sprint's PRs reviewed | `/pr-assignments-slack` | Route by who has capacity, not by who's loudest |
 
@@ -178,6 +180,53 @@ and the GitHub-login-to-Slack-ID table — lives in `commands/pr-assignments-sla
 separate from the procedure in `command.md`. Fork and rewrite that one file; the steps around
 it stay as they are. The installer stitches the two back together, so what lands in
 `.claude/commands/` is still a single self-contained file.
+
+---
+
+### `/onboard-setup` and `/onboard`
+
+*Source: [`commands/onboard-setup/`](./commands/onboard-setup) · [`commands/onboard/`](./commands/onboard)*
+
+A two-part pipeline for a new hire's first week. `/onboard-setup` learns your team's
+infrastructure once; `/onboard` runs it for each person who joins.
+
+Onboarding is twenty small actions across six browser tabs, performed the week you're busiest.
+None of it is hard, and the same parts get forgotten every time — the ceremony nobody noticed
+the hire wasn't on, the Slack channel they discover in month two.
+
+**`/onboard-setup` reads your calendar and asks you to tick boxes.** It finds your recurring
+meetings, works out which ones you can actually add a guest to, ranks your teammates by how many
+of your ceremonies they attend, and collects your Slack channels, Jira project, and GitHub teams.
+It writes `~/.claude/onboarding-pipeline/config.json` and nothing else — no invitations, no
+tickets, no messages — so re-running it is how you keep it current.
+
+**`/onboard "Priya Raman"` then does the work:** adds her to the ceremonies, schedules intro 1:1s
+across her first two weeks, files *Meet the Team* plus the first task you planned in advance,
+invites her to Slack, and adds her to your GitHub teams. It prints the entire plan and waits for
+**yes** — calendar invitations email people the instant they're created, so nothing is written
+before you approve.
+
+Two properties do most of the work:
+
+- **It's safe to re-run.** Every action is recorded against the hire, so a second run skips
+  what's done and retries only what failed or was blocked. You *will* re-run it, because a new
+  hire's Slack account rarely exists when you first want to use it.
+- **It knows what it can't do.** Google Calendar won't let anyone but the organizer add a guest.
+  Google Groups need Workspace admin. Figma has no invite API outside Enterprise SCIM. GitHub
+  teams need org owner. Rather than failing at those, it hands you a short checklist with links —
+  and flags when a single Google Group would cover several meetings at once, which is the highest
+  -leverage action available and easy to forget you have.
+
+Emails are always **drafts**. The welcome note and every request to a meeting organizer land in
+Gmail for you to read and send.
+
+**Requires:** the Google Calendar connector, authorized with calendar scopes — it supplies both the
+ceremonies and the 1:1s, so it's the one hard requirement. Notion, Gmail, Slack, Atlassian, Figma,
+and `gh` are each optional; whatever you haven't connected becomes a line on the manual checklist
+instead of an error, and whatever you didn't configure is never mentioned again.
+
+Config lives in `~/.claude/onboarding-pipeline/`, deliberately outside any repo — it holds your
+colleagues' and new hires' email addresses, and neither command will ever offer to commit it.
 
 ---
 
