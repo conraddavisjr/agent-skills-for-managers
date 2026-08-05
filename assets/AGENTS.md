@@ -9,9 +9,27 @@ README: a reader of this repo needs the commands, not the drawing's internals.
 | --- | --- |
 | `hero.svg` | **Source of truth.** Hand-written, meant to be edited. |
 | `hero.gif` | Derived raster of the same image, for places that can't show an animated SVG. |
+| `how-it-works.html` | Standalone five-panel explainer page. Nothing references it - see below. |
 
 Never hand-edit `hero.gif`, and never treat it as authoritative. Edit the SVG, then
 regenerate.
+
+## `how-it-works.html` is unreferenced on purpose
+
+Nothing in the repo links to, builds, or reads this file, and that is the expected state rather than an oversight.
+It arrived with the `add-team-member` update as the visual narrative for that release: five panels running from the problem (a year of work, three remembered weeks) through capture, filing, patterns, and the payoff.
+
+It cannot be surfaced from the README even if you wanted it there.
+GitHub sanitises HTML embedded in Markdown, so the page renders only as a raw download.
+Its real homes are a published artifact, GitHub Pages, or the Notion site, none of which this repo builds.
+
+The page is self-contained - inline SVG, inline CSS, no assets, light and dark in one file.
+It reuses the token names from `hero.svg` and adds two for the Exemplary / Improve split on the last panel.
+Editing it is safe in isolation; there is no pipeline to break.
+
+Do not delete it as dead weight.
+`.gitattributes` marks `assets/*` as `linguist-documentation`, which is what stops this file from dominating GitHub's language bar.
+That was the whole cost of keeping it.
 
 ## Editing `hero.svg`
 

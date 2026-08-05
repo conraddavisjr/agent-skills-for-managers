@@ -1,0 +1,8 @@
+# GitHub's language bar is computed by Linguist, which counts only the files it
+# classifies as `programming` or `markup`.
+# This repo's substance is Markdown, which Linguist classifies as `prose` and leaves out.
+# That left `assets/how-it-works.html` as the largest counted file, so GitHub called
+# this an HTML project.
+#
+# `assets/` holds illustrations and one standalone explainer page. None of it is source.
+assets/* linguist-documentation=true
